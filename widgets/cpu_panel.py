@@ -1,0 +1,98 @@
+"""
+CPU Panel — per-core load + effective clock from LibreHardwareMonitor.
+Uses pre-allocated rows (no dynamic mounting) to avoid Textual render issues.
+"""
+from __future__ import annotations
+
+from textual.app import ComposeResult
+from textual.reactive import reactive
+from textual.widget import Widget
+from textual.widgets import Static
+
+from collectors.hw_monitor import HWSensorData
+
+_BAR_W = 18
+_MAX_CORES = 32  # pre-allocate enough rows for any core count
+
+
+def _bar(pct: float) -> str:
+    filled = int(pct / 100 * _BAR_W)
+    empty = _BAR_W - filled
+    color = "red" if pct >= 80 else "yellow" if pct >= 50 else "green"
+    return f"[{color}]{'█' * filled}{'░' * empty}[/]"
+
+
+def _clk(mhz: float | None) -> str:
+    if mhz is None:
+        return "        "
+    if mhz >= 1000:
+        return f"{mhz / 1000:4.2f}GHz"
+    return f" {mhz:4.0f}MHz"
+
+
+def _fmt_core(c) -> str:
+    return f"[dim]#{c.index:<2}[/] {_bar(c.load_pct)} {_clk(c.eff_clock_mhz)} {c.load_pct:4.1f}%"
+
+
+class CPUPanel(Widget):
+    DEFAULT_CSS = """
+    CPUPanel {
+        border: solid $accent;
+        border-title-color: $accent;
+        padding: 0 1;
+        height: auto;
+    }
+    CPUPanel #cpu-header { height: 1; color: $text-muted; margin-bottom: 1; }
+    CPUPanel .cpu-row   { height: 1; layout: horizontal; }
+    CPUPanel .cpu-col   { width: 1fr; }
+    """
+
+    hw_stats: reactive[HWSensorData | None] = reactive(None)
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.border_title = "CPU Cores  (AMD Ryzen AI Max 395)"
+
+    def compose(self) -> ComposeResult:
+        yield Static("", id="cpu-header")
+        # Pre-allocate _MAX_CORES/2 rows (two cores per row, two columns)
+        for i in range(_MAX_CORES // 2):
+            with Static(classes="cpu-row", id=f"cpu-row-{i}"):
+                yield Static("", classes="cpu-col", id=f"cpu-left-{i}")
+                yield Static("", classes="cpu-col", id=f"cpu-right-{i}")
+
+    def on_mount(self) -> None:
+        self._update()
+
+    def watch_hw_stats(self, _: HWSensorData | None) -> None:
+        self._update()
+
+    def _update(self) -> None:
+        hw = self.hw_stats
+
+        # Header
+        parts = []
+        if hw and hw.cpu_temp_c is not None:
+            parts.append(f"Temp: {hw.cpu_temp_c:.0f}°C")
+        if hw and hw.cpu_power_w is not None:
+            parts.append(f"Pkg: {hw.cpu_power_w:.0f} W")
+        if hw and hw.cpu_total_load_pct is not None:
+            parts.append(f"Total: {hw.cpu_total_load_pct:.1f}%")
+        self.query_one("#cpu-header", Static).update(
+            "  |  ".join(parts) if parts else "CPU sensors unavailable"
+        )
+
+        cores = hw.cpu_cores if hw else []
+        half = (len(cores) + 1) // 2
+
+        for i in range(_MAX_CORES // 2):
+            left  = self.query_one(f"#cpu-left-{i}",  Static)
+            right = self.query_one(f"#cpu-right-{i}", Static)
+            row   = self.query_one(f"#cpu-row-{i}",   Static)
+
+            if i < half:
+                left.update(_fmt_core(cores[i]))
+                right.update(_fmt_core(cores[i + half]) if (i + half) < len(cores) else "")
+                row.display = True
+            else:
+                row.display = False

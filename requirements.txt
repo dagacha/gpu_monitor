@@ -1,0 +1,14 @@
+# Core TUI
+textual>=0.88.0
+
+# Windows GPU counter access
+pywin32>=307
+
+# System metrics (CPU, RAM)
+psutil>=6.0.0
+
+# LibreHardwareMonitor WMI bridge (for GPU temp, clock, power)
+wmi>=1.5.1
+
+# LHM DLL access (used for GPU/CPU temps, clocks, power)
+pythonnet>=3.0.3
