@@ -25,7 +25,12 @@ def main() -> None:
             AppleSiliconMonitorApp().run()
         except ImportError as e:
             print(f"Error loading Apple Silicon platform: {e}")
-            print("Make sure you have psutil installed: pip install psutil")
+            print("\nTroubleshooting:")
+            print("1. Without sudo: pip install textual psutil")
+            print("2. With sudo, use the full Python path:")
+            print(f"   sudo $(which python3) main.py")
+            print("\nOr install dependencies for system Python:")
+            print("   sudo pip install textual psutil")
             sys.exit(1)
 
     else:
