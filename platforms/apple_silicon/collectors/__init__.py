@@ -17,6 +17,7 @@ from platforms.apple_silicon.collectors.gpu import GPUCollector
 from platforms.apple_silicon.collectors.memory import MemoryCollector
 from platforms.apple_silicon.collectors.power import PowerCollector
 from platforms.apple_silicon.collectors.powermetrics import PowerMetricsRunner
+from platforms.apple_silicon.collectors.process import ProcessCollector
 from platforms.apple_silicon.config import AppleConfig
 
 
@@ -38,6 +39,7 @@ class AppleSiliconCollectors:
         self._gpu = GPUCollector()
         self._memory = MemoryCollector()
         self._power = PowerCollector()
+        self._processes = ProcessCollector()
         
         # powermetrics runner (for GPU/power/thermal)
         self._pm_runner = PowerMetricsRunner(self.config)
@@ -83,11 +85,8 @@ class AppleSiliconCollectors:
         else:
             power = self._power.collect_basic()
         
-        # Process stats not implemented for macOS yet
-        processes = ProcessStats(
-            available=False,
-            error="Process GPU tracking not implemented for macOS",
-        )
+        # Process stats (top CPU processes via psutil)
+        processes = self._processes.collect()
         
         return SystemSnapshot(
             gpu=gpu,
