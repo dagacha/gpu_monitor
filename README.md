@@ -1,74 +1,92 @@
 # gpu_monitor
 
-An htop-like terminal GPU/CPU/NPU monitor built for the **AMD Ryzen AI Max 395** (and similar Ryzen AI Max series APUs) on Windows 11.
+An htop-like terminal GPU/CPU/NPU monitor for **AMD Ryzen AI Max** (Windows) and **Apple Silicon** (macOS).
 
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Platform](https://img.shields.io/badge/platform-Windows%2011-blue)
-![GPU](https://img.shields.io/badge/GPU-AMD%20Radeon%208060S%20%2F%20RDNA-red)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-blue)
+
+## Supported Platforms
+
+| Platform | GPU | CPU | Memory | NPU | Power/Thermal |
+|----------|-----|-----|--------|-----|---------------|
+| **AMD Ryzen AI Max** (Windows 11) | ✅ Radeon 8060S | ✅ Per-core | ✅ UMA | ✅ XDNA | ✅ SoC |
+| **Apple Silicon** (macOS) | ✅ M1/M2/M3/M4 | ✅ Per-core | ✅ Unified | ❌ Not exposed | ✅ Thermal |
 
 ## What it shows
 
+### AMD Ryzen (Windows)
+
 | Panel | Metrics |
 |-------|---------|
-| **GPU** | Per-engine utilization (3D / Compute / Copy / Video), 60s sparkline, temperature, core clock, memory clock, SoC clock, GPU power |
+| **GPU** | Per-engine utilization (3D / Compute / Copy / Video), 60s sparkline, temperature, clocks, power |
 | **NPU** | XDNA partitions, HW contexts, GOPS, XRT / firmware versions (via `xrt-smi`) |
-| **Memory** | GPU dedicated memory, GPU shared memory, system RAM — all from the 128 GB UMA pool |
+| **Memory** | GPU dedicated, GPU shared, system RAM — all from unified memory pool |
 | **Processes** | Top GPU memory consumers (local + shared), refreshed every 5s |
 | **CPU** | Per-core load bars + effective clock (GHz), package temperature and power |
-| **SoC Power** | Combined CPU + GPU power draw |
+| **Power** | Combined CPU + GPU power draw |
 
-## Hardware
+### Apple Silicon (macOS)
 
-Tested on:
-- **BosGame M5 AI** — AMD Ryzen AI Max+ 395 w/ Radeon 8060S, 128 GB unified RAM, Windows 11 Pro
+| Panel | Metrics |
+|-------|---------|
+| **GPU** | Active %, frequency, power — requires `sudo` for powermetrics |
+| **Memory** | Unified memory breakdown: wired, active, inactive, free, compressed |
+| **CPU** | Per-core load bars, frequency from powermetrics (with sudo) |
+| **Power** | CPU/GPU power draw, thermal pressure level (Nominal/Fair/Serious/Critical) |
 
-Should work on any **Ryzen AI Max 300/395** system with Windows 11 and AMD Adrenalin drivers installed.
+## Quick Start
 
-## Requirements
-
-- Python 3.11+
-- [Windows Terminal](https://aka.ms/terminal) (for full color and Unicode rendering)
-- AMD Adrenalin drivers (for GPU performance counters)
-- `xrt-smi.exe` at `C:\Windows\System32\AMD\` — ships with Ryzen AI drivers
-
-## Setup
-
-### 1. Clone
+### AMD Ryzen (Windows 11)
 
 ```bat
 git clone https://github.com/dagacha/gpu_monitor.git
 cd gpu_monitor
-```
-
-### 2. Install Python dependencies
-
-```bat
 pip install -r requirements.txt
+python main.py
 ```
 
-### 3. LibreHardwareMonitor (for temperature, clocks, power)
+### Apple Silicon (macOS)
 
-Download [LibreHardwareMonitor v0.9.6+](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/releases) and extract to:
+```bash
+git clone https://github.com/dagacha/gpu_monitor.git
+cd gpu_monitor
+pip install -r requirements.txt
 
+# Basic (CPU + memory)
+python main.py
+
+# Full features (GPU + power + thermal) — requires sudo
+sudo python main.py
 ```
-C:\Users\<YourName>\LibreHardwareMonitor\
-```
 
-Then update the path in `collectors/hw_monitor.py`:
+## Requirements
 
-```python
-_LHM_PATH = r"C:\Users\<YourName>\LibreHardwareMonitor"
-```
+### Common
+- Python 3.11+
+- `textual>=0.88.0`
+- `psutil>=6.0.0`
 
-The app uses the LHM DLL directly via `pythonnet` — no need to run LHM manually or enable its WMI service.
+### AMD Ryzen (Windows)
+- Windows 11
+- Windows Terminal (for full color and Unicode rendering)
+- AMD Adrenalin drivers
+- `pywin32>=307`
+- `pythonnet>=3.0.3`
+- `wmi>=1.5.1`
+- LibreHardwareMonitor v0.9.6+ (for temps/clocks/power)
 
-> Without LHM, the app still runs — temperature, clock, and power fields show `--`.
+### Apple Silicon (macOS)
+- macOS 12+ (Monterey or later)
+- `sudo` access (optional, for GPU/power/thermal data)
 
-### 4. Run
+## Configuration
 
-```bat
-python app.py
-```
+All paths are configurable via environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GPU_MONITOR_LHM_PATH` | `C:\Users\Office\LibreHardwareMonitor` | LHM directory (Windows) |
+| `GPU_MONITOR_XRT_SMI` | `C:\Windows\System32\AMD\xrt-smi.exe` | xrt-smi path (Windows) |
 
 ## Keyboard shortcuts
 
@@ -79,70 +97,122 @@ python app.py
 | `r` | Reset sparkline history |
 | `v` | Toggle process table |
 | `c` | Toggle CPU panel |
-| `l` | Toggle CSV logging (saves to `gpu_log_YYYYMMDD_HHMMSS.csv`) |
+| `l` | Toggle CSV logging |
 
 ## Architecture
 
 ```
 gpu_monitor/
-├── app.py                      # Textual app, keybindings, layout
-├── logger.py                   # CSV logging
-├── collectors/
-│   ├── gpu_pdh.py              # GPU utilization + memory (Windows PDH)
-│   ├── hw_monitor.py           # GPU/CPU temps, clocks, power (LHM DLL)
-│   ├── npu.py                  # NPU status (xrt-smi)
-│   └── process_gpu.py          # Per-process GPU memory (Windows PDH)
-└── widgets/
-    ├── gpu_panel.py            # GPU gauges + sparkline
-    ├── mem_panel.py            # UMA memory bars
-    ├── npu_panel.py            # NPU partition / context display
-    ├── cpu_panel.py            # Per-core CPU bars + clocks
-    └── process_table.py        # GPU process list
+├── main.py                     # Platform detection + entry point
+├── common/                     # Shared types & utilities
+│   ├── types.py               # GPUStats, CPUStats, MemoryStats, etc.
+│   ├── config.py              # Base configuration
+│   ├── logger.py              # CSV logging
+│   └── widgets/util.py        # bar(), fmt_mb(), fmt_watts()
+├── platforms/
+│   ├── amd_ryzen/             # AMD Ryzen (Windows)
+│   │   ├── collectors/        # GPU PDH, LHM, NPU, process memory
+│   │   ├── widgets/           # Platform-specific UI
+│   │   ├── app.py             # Textual application
+│   │   └── config.py          # AMD-specific settings
+│   └── apple_silicon/         # Apple Silicon (macOS)
+│       ├── collectors/        # psutil, vm_stat, powermetrics
+│       ├── widgets/
+│       ├── app.py
+│       └── config.py
+└── requirements.txt
 ```
 
-### Data sources
+### Data Sources
+
+#### AMD Ryzen (Windows)
 
 | Metric | Source |
 |--------|--------|
 | GPU engine utilization | Windows Performance Counters (`win32pdh`) |
-| GPU D3D load, temperature, clocks, power | LibreHardwareMonitor DLL (`pythonnet`) |
+| GPU temps/clocks/power | LibreHardwareMonitor DLL (`pythonnet`) |
 | GPU / process memory | Windows Performance Counters |
-| NPU partitions, contexts, GOPS | `xrt-smi examine --report aie-partitions` |
-| CPU per-core load + effective clock | LibreHardwareMonitor DLL |
+| NPU | `xrt-smi examine --report aie-partitions` |
+| CPU | LibreHardwareMonitor DLL |
 | System RAM | `psutil` |
 
-## GPU stress test
+#### Apple Silicon (macOS)
+
+| Metric | Source | Sudo Required |
+|--------|--------|---------------|
+| CPU load | `psutil.cpu_percent()` | No |
+| Memory | `psutil.virtual_memory()` + `vm_stat` | No |
+| GPU active % / freq | `powermetrics --samplers gpu_power` | Yes |
+| Power draw | `powermetrics --samplers cpu_power,gpu_power` | Yes |
+| Thermal pressure | `powermetrics --samplers thermal` / `memory_pressure` | Yes / No |
+
+## GPU Stress Test
+
+### AMD (Windows)
 
 ```bat
 pip install pygame PyOpenGL
 python stress.py
 ```
 
-Opens an OpenGL window at uncapped FPS to verify the 3D engine counter responds.
+### Apple (macOS)
+
+Use any GPU-intensive app or:
+```bash
+# Install gfxCardStatus or similar to force discrete GPU
+# Or run a compute benchmark
+```
 
 ## Troubleshooting
 
+### AMD Ryzen
+
 **GPU counters show 0% / unavailable**
-Run the terminal as Administrator, or verify AMD drivers are installed:
+Run the terminal as Administrator, or verify AMD drivers:
 ```bat
 typeperf "\GPU Engine(*)\Utilization Percentage" -sc 1
 ```
 
 **Temperature / clock / power show `--`**
-Check the `_LHM_PATH` in `collectors/hw_monitor.py` points to your LHM folder.
+Check `GPU_MONITOR_LHM_PATH` environment variable points to your LHM folder.
 
 **NPU shows "xrt-smi not found"**
-Ryzen AI drivers not installed, or `C:\Windows\System32\AMD\xrt-smi.exe` is missing.
+Ryzen AI drivers not installed, or `xrt-smi.exe` is missing.
 
-**Blank screen / no color**
-Use Windows Terminal, not the classic Command Prompt or PowerShell console.
+### Apple Silicon
+
+**GPU shows "requires sudo powermetrics"**
+Run with `sudo` once to authorize, or run `sudo powermetrics` manually first:
+```bash
+sudo powermetrics --samplers cpu_power,gpu_power,thermal -i 1000 -n 1
+```
+
+**CPU frequencies not showing**
+Require `sudo` for powermetrics. Without sudo, only load % is available.
+
+**Thermal shows "Unknown"**
+System may not be reporting thermal pressure. Check with `memory_pressure` command.
+
+## Known Limitations
+
+### macOS (Apple Silicon)
+- **No per-process GPU tracking** — macOS has no public API equivalent to Windows PDH GPU process counters
+- **GPU requires sudo** — powermetrics is the only way to access GPU utilization/power
+- **ANE (Neural Engine) not exposed** — powermetrics shows `ane_power` but it's not yet parsed
+- **CPU temperature not available** — No public API on macOS
 
 ## Dependencies
 
 ```
 textual>=0.88.0
-pywin32>=307
 psutil>=6.0.0
+
+# Windows only:
+pywin32>=307
 wmi>=1.5.1
 pythonnet>=3.0.3
 ```
+
+## License
+
+Apache 2.0 — Copyright 2026 dagacha
