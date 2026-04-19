@@ -65,7 +65,7 @@ class MemPanel(Widget):
         sys_used = vm.used / 1024**2  # MB
         sys_total = vm.total / 1024**2
         self.query_one("#sys-row", Static).update(
-            f"[dim]System RAM    [/]{bar(sys_pct)}  {_fmt_mb(sys_used)} / {_fmt_mb(sys_total)}"
+            f"[bold]System RAM[/]  Total: {_fmt_mb(sys_total)}  Used: {sys_pct:.1f}%  {_fmt_mb(sys_used)}"
         )
 
         # GPU dedicated (from LHM)
@@ -74,11 +74,11 @@ class MemPanel(Widget):
             total = hw.gpu_mem_total_mb
             pct = min(used / total * 100, 100) if total > 0 else 0
             self.query_one("#gpu-ded-row", Static).update(
-                f"[dim]GPU Dedicated  [/]{bar(pct)}  {_fmt_mb(used)} / {_fmt_mb(total)}"
+                f"[bold]GPU Dedicated[/]  Total: {_fmt_mb(total)}  Used: {pct:.1f}%  {_fmt_mb(used)}"
             )
         else:
             self.query_one("#gpu-ded-row", Static).update(
-                "[dim]GPU Dedicated  [/] --"
+                "[bold]GPU Dedicated[/]  [dim]Not available (LHM not running)[/]"
             )
 
         # GPU shared (from LHM)
@@ -87,9 +87,9 @@ class MemPanel(Widget):
             total = hw.gpu_mem_shared_total_mb or 16384.0
             pct = min(used / total * 100, 100) if total > 0 else 0
             self.query_one("#gpu-shared-row", Static).update(
-                f"[dim]GPU Shared     [/]{bar(pct)}  {_fmt_mb(used)} / {_fmt_mb(total)}"
+                f"[bold]GPU Shared[/]  Total: {_fmt_mb(total)}  Used: {pct:.1f}%  {_fmt_mb(used)}"
             )
         else:
             self.query_one("#gpu-shared-row", Static).update(
-                "[dim]GPU Shared     [/] --"
+                "[bold]GPU Shared[/]  [dim]Not available (LHM not running)[/]"
             )
