@@ -31,8 +31,9 @@ from widgets.mem_panel import MemPanel
 from widgets.npu_panel import NPUPanel
 from widgets.process_table import ProcessTable
 
+from config import LHM_EXE
+
 REFRESH_INTERVAL = 1.0
-_LHM_EXE = r"C:\Users\Office\LibreHardwareMonitor\LibreHardwareMonitor.exe"
 
 
 def _ensure_lhm() -> None:
@@ -44,10 +45,10 @@ def _ensure_lhm() -> None:
                 return  # already running
     except Exception:
         pass
-    if os.path.isfile(_LHM_EXE):
+    if os.path.isfile(LHM_EXE):
         try:
             subprocess.Popen(
-                [_LHM_EXE],
+                [LHM_EXE],
                 creationflags=subprocess.CREATE_NO_WINDOW,
             )
         except Exception:
