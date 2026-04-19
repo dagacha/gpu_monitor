@@ -1,12 +1,18 @@
-"""Placeholder for Apple Silicon platform — to be implemented in PR 3."""
+"""Apple Silicon platform plugin for gpu_monitor.
+
+Supports Apple Silicon Macs (M1/M2/M3/M4 series) on macOS.
+Uses psutil, sysctl, vm_stat, and powermetrics (sudo required for GPU/power/thermal).
+"""
 from __future__ import annotations
 
+import os
+import sys
 
-class AppleSiliconMonitorApp:
-    """Placeholder — will be implemented in PR 3."""
-    
-    def run(self) -> None:
-        raise NotImplementedError(
-            "Apple Silicon platform coming in PR 3. "
-            "Use the AMD Ryzen platform for now."
-        )
+# Ensure common is importable
+if __name__ == "__main__":
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+from platforms.apple_silicon.collectors import AppleSiliconCollectors
+from platforms.apple_silicon.app import AppleSiliconMonitorApp
+
+__all__ = ["AppleSiliconCollectors", "AppleSiliconMonitorApp"]
