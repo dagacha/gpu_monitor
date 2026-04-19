@@ -14,17 +14,11 @@ from textual.widgets import Label, Sparkline, Static
 
 from collectors.gpu_pdh import GPUStats
 from collectors.hw_monitor import HWSensorData
+from widgets.util import bar
 
 _HISTORY_LEN = 60
 _ENGINE_ORDER = ["3D", "Compute", "Copy", "Video", "Security", "Timer"]
 _BAR_WIDTH = 28
-
-
-def _ascii_bar(pct: float, width: int = _BAR_WIDTH) -> str:
-    filled = int(pct / 100 * width)
-    empty = width - filled
-    color = "red" if pct >= 80 else "yellow" if pct >= 50 else "green"
-    return f"[{color}]{'█' * filled}{'░' * empty}[/] {pct:5.1f}%"
 
 
 class GPUPanel(Widget):
@@ -94,7 +88,7 @@ class GPUPanel(Widget):
             if pct is None:
                 pct = pdh.get(engine, 0.0)
             self.query_one(f"#engine-{engine}", Static).update(
-                f"[dim]{engine:<13}[/] {_ascii_bar(pct)}"
+                f"[dim]{engine:<13}[/] {bar(pct, width=_BAR_WIDTH)}"
             )
 
     def _update_hw_rows(self) -> None:

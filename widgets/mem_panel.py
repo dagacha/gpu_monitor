@@ -12,19 +12,13 @@ from textual.widget import Widget
 from textual.widgets import Label, Static
 
 from collectors.hw_monitor import HWSensorData
+from widgets.util import bar
 
 
 def _fmt_mb(mb: float) -> str:
     if mb >= 1024:
         return f"{mb / 1024:.1f} GB"
     return f"{mb:.0f} MB"
-
-
-def _bar(pct: float, width: int = 28) -> str:
-    filled = int(pct / 100 * width)
-    empty = width - filled
-    color = "red" if pct >= 80 else "yellow" if pct >= 50 else "green"
-    return f"[{color}]{'█' * filled}{'░' * empty}[/] {pct:5.1f}%"
 
 
 class MemPanel(Widget):
@@ -71,7 +65,7 @@ class MemPanel(Widget):
         sys_used = vm.used / 1024**2  # MB
         sys_total = vm.total / 1024**2
         self.query_one("#sys-row", Static).update(
-            f"[dim]System RAM    [/]{_bar(sys_pct)}  {_fmt_mb(sys_used)} / {_fmt_mb(sys_total)}"
+            f"[dim]System RAM    [/]{bar(sys_pct)}  {_fmt_mb(sys_used)} / {_fmt_mb(sys_total)}"
         )
 
         # GPU dedicated (from LHM)
@@ -80,7 +74,7 @@ class MemPanel(Widget):
             total = hw.gpu_mem_total_mb
             pct = min(used / total * 100, 100) if total > 0 else 0
             self.query_one("#gpu-ded-row", Static).update(
-                f"[dim]GPU Dedicated  [/]{_bar(pct)}  {_fmt_mb(used)} / {_fmt_mb(total)}"
+                f"[dim]GPU Dedicated  [/]{bar(pct)}  {_fmt_mb(used)} / {_fmt_mb(total)}"
             )
         else:
             self.query_one("#gpu-ded-row", Static).update(
@@ -93,7 +87,7 @@ class MemPanel(Widget):
             total = hw.gpu_mem_shared_total_mb or 16384.0
             pct = min(used / total * 100, 100) if total > 0 else 0
             self.query_one("#gpu-shared-row", Static).update(
-                f"[dim]GPU Shared     [/]{_bar(pct)}  {_fmt_mb(used)} / {_fmt_mb(total)}"
+                f"[dim]GPU Shared     [/]{bar(pct)}  {_fmt_mb(used)} / {_fmt_mb(total)}"
             )
         else:
             self.query_one("#gpu-shared-row", Static).update(

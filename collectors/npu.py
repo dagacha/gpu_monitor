@@ -1,6 +1,5 @@
 r"""
 NPU metrics via AMD xrt-smi.
-Binary: C:\Windows\System32\AMD\xrt-smi.exe
 
 Parses two commands:
   xrt-smi examine               -> XRT/driver/firmware versions
@@ -13,7 +12,7 @@ import re
 import subprocess
 from dataclasses import dataclass, field
 
-_XRT_SMI = r"C:\Windows\System32\AMD\xrt-smi.exe"
+from config import XRT_SMI
 
 
 @dataclass
@@ -83,7 +82,7 @@ def _run(args: list[str], timeout: int = 5) -> str:
 
 class NPUCollector:
     def __init__(self) -> None:
-        self._available = os.path.isfile(_XRT_SMI)
+        self._available = os.path.isfile(XRT_SMI)
         self._base_info: tuple[str, str, str] = ("", "", "")
         self._base_fetched = False
 
@@ -110,7 +109,7 @@ class NPUCollector:
         )
 
     def _parse_base(self) -> tuple[str, str, str]:
-        out = _run([_XRT_SMI, "examine"])
+        out = _run([XRT_SMI, "examine"])
         xrt = re.search(r"Version\s*:\s*(\S+)", out)
         drv = re.search(r"NPU Driver Version\s*:\s*(\S+)", out)
         fw  = re.search(r"NPU Firmware Version\s*:\s*(\S+)", out)
@@ -121,7 +120,7 @@ class NPUCollector:
         )
 
     def _parse_partitions(self) -> list[NPUPartition]:
-        out = _run([_XRT_SMI, "examine", "--report", "aie-partitions"])
+        out = _run([XRT_SMI, "examine", "--report", "aie-partitions"])
         partitions: list[NPUPartition] = []
         current: NPUPartition | None = None
 

@@ -9,7 +9,7 @@ import sys
 from dataclasses import dataclass, field
 from typing import Optional
 
-_LHM_PATH = r"C:\Users\Office\LibreHardwareMonitor"
+from config import LHM_PATH
 
 _CLR_READY = False
 _computer = None
@@ -19,7 +19,7 @@ def _init_lhm() -> bool:
     global _CLR_READY, _computer
     try:
         import clr
-        sys.path.insert(0, _LHM_PATH)
+        sys.path.insert(0, LHM_PATH)
         clr.AddReference("LibreHardwareMonitorLib")
         from LibreHardwareMonitor.Hardware import Computer
         c = Computer()

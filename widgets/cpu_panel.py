@@ -10,16 +10,10 @@ from textual.widget import Widget
 from textual.widgets import Static
 
 from collectors.hw_monitor import HWSensorData
+from widgets.util import bar
 
 _BAR_W = 18
 _MAX_CORES = 32  # pre-allocate enough rows for any core count
-
-
-def _bar(pct: float) -> str:
-    filled = int(pct / 100 * _BAR_W)
-    empty = _BAR_W - filled
-    color = "red" if pct >= 80 else "yellow" if pct >= 50 else "green"
-    return f"[{color}]{'█' * filled}{'░' * empty}[/]"
 
 
 def _clk(mhz: float | None) -> str:
@@ -31,7 +25,7 @@ def _clk(mhz: float | None) -> str:
 
 
 def _fmt_core(c) -> str:
-    return f"[dim]#{c.index:<2}[/] {_bar(c.load_pct)} {_clk(c.eff_clock_mhz)} {c.load_pct:4.1f}%"
+    return f"[dim]#{c.index:<2}[/] {bar(c.load_pct, width=_BAR_W, show_pct=False)} {_clk(c.eff_clock_mhz)} {c.load_pct:4.1f}%"
 
 
 class CPUPanel(Widget):
