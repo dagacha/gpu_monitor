@@ -29,6 +29,7 @@ class GPUCollector:
         """
         if not pm_data or "gpu" not in pm_data:
             return GPUStats(
+                total_utilization=0.0,
                 available=False,
                 error="GPU data requires sudo powermetrics",
             )
@@ -57,6 +58,7 @@ class GPUCollector:
             
         except Exception as e:
             return GPUStats(
+                total_utilization=0.0,
                 available=False,
                 error=f"Failed to parse GPU data: {e}",
             )
@@ -67,6 +69,7 @@ class GPUCollector:
         Used when no sudo is available.
         """
         return GPUStats(
+            total_utilization=0.0,
             available=False,
             error="GPU data requires sudo powermetrics --samplers gpu_power",
         )

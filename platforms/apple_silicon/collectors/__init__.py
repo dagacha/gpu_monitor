@@ -18,6 +18,7 @@ from platforms.apple_silicon.collectors.memory import MemoryCollector
 from platforms.apple_silicon.collectors.power import PowerCollector
 from platforms.apple_silicon.collectors.powermetrics import PowerMetricsRunner
 from platforms.apple_silicon.collectors.process import ProcessCollector
+from platforms.apple_silicon.collectors.process_memory import ProcessMemoryCollector
 from platforms.apple_silicon.config import AppleConfig
 
 
@@ -40,6 +41,7 @@ class AppleSiliconCollectors:
         self._memory = MemoryCollector()
         self._power = PowerCollector()
         self._processes = ProcessCollector()
+        self._processes_by_memory = ProcessMemoryCollector()
         
         # powermetrics runner (for GPU/power/thermal)
         self._pm_runner = PowerMetricsRunner(self.config)
@@ -85,8 +87,9 @@ class AppleSiliconCollectors:
         else:
             power = self._power.collect_basic()
         
-        # Process stats (top CPU processes via psutil)
+        # Process stats (top CPU and top RAM processes via psutil)
         processes = self._processes.collect()
+        processes_by_memory = self._processes_by_memory.collect()
         
         return SystemSnapshot(
             gpu=gpu,
@@ -94,6 +97,7 @@ class AppleSiliconCollectors:
             memory=memory,
             power=power,
             processes=processes,
+            processes_by_memory=processes_by_memory,
             timestamp=time.time(),
         )
 
