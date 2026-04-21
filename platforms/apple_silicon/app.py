@@ -31,6 +31,7 @@ from platforms.apple_silicon.widgets import (
     GPUPanel,
     MemPanel,
     PowerPanel,
+    ProcessMemoryTable,
     ProcessTable,
 )
 
@@ -51,6 +52,16 @@ class AppleSiliconMonitorApp(App):
         width: 1fr;
         layout: vertical;
     }
+    #processes-row {
+        layout: horizontal;
+        height: auto;
+    }
+    #processes-row ProcessTable {
+        width: 1fr;
+    }
+    #processes-row ProcessMemoryTable {
+        width: 1fr;
+    }
     #status-bar {
         height: 1;
         background: $panel;
@@ -63,7 +74,8 @@ class AppleSiliconMonitorApp(App):
         Binding("q", "quit", "Quit"),
         Binding("p", "toggle_pause", "Pause"),
         Binding("r", "reset_history", "Reset"),
-        Binding("v", "toggle_processes", "Processes"),
+        Binding("v", "toggle_processes", "CPU Procs"),
+        Binding("m", "toggle_memory_processes", "RAM Procs"),
         Binding("c", "toggle_cpu", "CPU Panel"),
         Binding("l", "toggle_logging", "Log CSV"),
     ]
@@ -80,6 +92,7 @@ class AppleSiliconMonitorApp(App):
 
         self._paused = False
         self._show_processes = True
+        self._show_memory_processes = True
         self._show_cpu = True
 
         # Cache for logging
@@ -94,7 +107,9 @@ class AppleSiliconMonitorApp(App):
                 yield PowerPanel(id="power-panel")
                 yield MemPanel(id="mem-panel")
 
-        yield ProcessTable(id="process-table")
+        with Static(id="processes-row"):
+            yield ProcessTable(id="process-table")
+            yield ProcessMemoryTable(id="process-memory-table")
         yield CPUPanel(id="cpu-panel")
         yield Static("", id="status-bar")
         yield Footer()
@@ -124,6 +139,7 @@ class AppleSiliconMonitorApp(App):
         self.query_one("#power-panel", PowerPanel).power_stats = snapshot.power
         self.query_one("#cpu-panel", CPUPanel).cpu_stats = snapshot.cpu
         self.query_one("#process-table", ProcessTable).process_stats = snapshot.processes
+        self.query_one("#process-memory-table", ProcessMemoryTable).process_stats = snapshot.processes_by_memory
 
         # CSV logging
         if self._csv.active:
@@ -148,7 +164,15 @@ class AppleSiliconMonitorApp(App):
         pt = self.query_one("#process-table", ProcessTable)
         pt.display = self._show_processes
         self._set_status(
-            "Process table shown" if self._show_processes else "Process table hidden"
+            "CPU process table shown" if self._show_processes else "CPU process table hidden"
+        )
+
+    def action_toggle_memory_processes(self) -> None:
+        self._show_memory_processes = not self._show_memory_processes
+        pmt = self.query_one("#process-memory-table", ProcessMemoryTable)
+        pmt.display = self._show_memory_processes
+        self._set_status(
+            "RAM process table shown" if self._show_memory_processes else "RAM process table hidden"
         )
 
     def action_toggle_cpu(self) -> None:

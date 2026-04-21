@@ -105,4 +105,5 @@ class SystemSnapshot:
     memory: MemoryStats
     power: PowerStats
     processes: ProcessStats
+    processes_by_memory: ProcessStats = field(default_factory=lambda: ProcessStats())
     timestamp: float = 0.0

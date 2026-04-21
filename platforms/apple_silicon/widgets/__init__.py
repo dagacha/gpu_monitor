@@ -5,6 +5,7 @@ from platforms.apple_silicon.widgets.cpu_panel import CPUPanel
 from platforms.apple_silicon.widgets.gpu_panel import GPUPanel
 from platforms.apple_silicon.widgets.mem_panel import MemPanel
 from platforms.apple_silicon.widgets.power_panel import PowerPanel
+from platforms.apple_silicon.widgets.process_memory_table import ProcessMemoryTable
 from platforms.apple_silicon.widgets.process_table import ProcessTable
 
 __all__ = [
@@ -12,5 +13,6 @@ __all__ = [
     "GPUPanel",
     "MemPanel",
     "PowerPanel",
+    "ProcessMemoryTable",
     "ProcessTable",
 ]
