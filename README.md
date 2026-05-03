@@ -1,9 +1,9 @@
 # gpu_monitor
 
-An htop-like terminal GPU/CPU/NPU monitor for **AMD Ryzen AI Max** (Windows) and **Apple Silicon** (macOS).
+An htop-like terminal GPU/CPU/NPU monitor for **AMD Ryzen AI Max** (Windows), **Apple Silicon** (macOS), and **NVIDIA GPUs** (Linux).
 
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-blue)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 
 ## Supported Platforms
 
@@ -11,6 +11,8 @@ An htop-like terminal GPU/CPU/NPU monitor for **AMD Ryzen AI Max** (Windows) and
 |----------|-----|-----|--------|-----|---------------|
 | **AMD Ryzen AI Max** (Windows 11) | ✅ Radeon 8060S | ✅ Per-core | ✅ UMA | ✅ XDNA | ✅ SoC |
 | **Apple Silicon** (macOS) | ✅ M1/M2/M3/M4 | ✅ Per-core | ✅ Unified | ❌ Not exposed | ✅ Thermal |
+| **NVIDIA GPU** (Linux) | ✅ RTX/GTX | ✅ Per-core | ✅ System | ❌ Not exposed | ✅ Power |
+
 
 ## What it shows
 
@@ -33,6 +35,15 @@ An htop-like terminal GPU/CPU/NPU monitor for **AMD Ryzen AI Max** (Windows) and
 | **Memory** | Unified memory breakdown: wired, active, inactive, free, compressed |
 | **CPU** | Per-core load bars, frequency from powermetrics (with sudo) |
 | **Power** | CPU/GPU power draw, thermal pressure level (Nominal/Fair/Serious/Critical) |
+
+### NVIDIA (Linux)
+
+| Panel | Metrics |
+|-------|---------|
+| **GPU** | Utilization, Memory usage, Temperature, Power draw, Clock speeds |
+| **Memory** | System RAM utilization |
+| **CPU** | Per-core load bars |
+| **Power** | GPU Power draw (Watts) |
 
 ## Quick Start
 
@@ -59,6 +70,15 @@ python main.py
 sudo python main.py
 ```
 
+### NVIDIA (Linux)
+
+```bash
+git clone https://github.com/dagacha/gpu_monitor.git
+cd gpu_monitor
+pip install -r requirements-linux.txt
+python main.py
+```
+
 ## Requirements
 
 ### Common
@@ -78,6 +98,10 @@ sudo python main.py
 ### Apple Silicon (macOS)
 - macOS 12+ (Monterey or later)
 - `sudo` access (optional, for GPU/power/thermal data)
+
+### NVIDIA (Linux)
+- Linux distribution with NVIDIA drivers installed
+- `nvidia-smi` available in PATH
 
 ## Configuration
 
@@ -115,8 +139,13 @@ gpu_monitor/
 │   │   ├── widgets/           # Platform-specific UI
 │   │   ├── app.py             # Textual application
 │   │   └── config.py          # AMD-specific settings
-│   └── apple_silicon/         # Apple Silicon (macOS)
-│       ├── collectors/        # psutil, vm_stat, powermetrics
+│   ├── apple_silicon/         # Apple Silicon (macOS)
+│   │   ├── collectors/        # psutil, vm_stat, powermetrics
+│   │   ├── widgets/
+│   │   ├── app.py
+│   │   └── config.py
+│   └── nvidia_linux/           # NVIDIA (Linux)
+│       ├── collectors/        # nvidia-smi, psutil
 │       ├── widgets/
 │       ├── app.py
 │       └── config.py
@@ -145,6 +174,15 @@ gpu_monitor/
 | GPU active % / freq | `powermetrics --samplers gpu_power` | Yes |
 | Power draw | `powermetrics --samplers cpu_power,gpu_power` | Yes |
 | Thermal pressure | `powermetrics --samplers thermal` / `memory_pressure` | Yes / No |
+
+#### NVIDIA (Linux)
+
+| Metric | Source | Sudo Required |
+|--------|--------|---------------|
+| GPU utilization/mem | `nvidia-smi` | No |
+| GPU power/temp | `nvidia-smi` | No |
+| CPU load | `psutil.cpu_percent()` | No |
+| System RAM | `psutil.virtual_memory()` | No |
 
 ## GPU Stress Test
 
