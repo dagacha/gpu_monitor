@@ -24,13 +24,13 @@ class PowerPanel(Widget):
     PowerPanel Static {
         height: 1;
     }
-    PowerPanel #thermal-critical {
+    PowerPanel .thermal-critical {
         color: $error;
     }
-    PowerPanel #thermal-heavy {
+    PowerPanel .thermal-heavy {
         color: $warning;
     }
-    PowerPanel #thermal-moderate {
+    PowerPanel .thermal-moderate {
         color: $text-warning;
     }
     """
@@ -74,13 +74,11 @@ class PowerPanel(Widget):
         thermal_text = f"Thermal: {thermal}"
         
         thermal_widget = self.query_one("#thermal-row", Static)
-        if thermal in ["Critical", "Serious"]:
-            thermal_widget.id = "thermal-critical"
-        elif thermal == "Fair":
-            thermal_widget.id = "thermal-heavy"
-        elif thermal == "Moderate":
-            thermal_widget.id = "thermal-moderate"
-        else:
-            thermal_widget.id = "thermal-row"
-        
+        thermal_widget.set_classes(
+            "thermal-critical" if thermal in ["Critical", "Serious"]
+            else "thermal-heavy" if thermal == "Fair"
+            else "thermal-moderate" if thermal == "Moderate"
+            else ""
+        )
+
         thermal_widget.update(thermal_text)
