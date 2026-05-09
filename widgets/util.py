@@ -13,6 +13,7 @@ def bar(pct: float, width: int = 28, show_pct: bool = True) -> str:
     Returns:
         Rich-formatted string with color-coded bar
     """
+    pct = max(0.0, min(pct, 100.0))
     filled = int(pct / 100 * width)
     empty = width - filled
     color = "red" if pct >= 80 else "yellow" if pct >= 50 else "green"
