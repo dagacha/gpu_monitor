@@ -59,11 +59,22 @@ class AMDRyzenCollectors:
 
         # Build memory stats from GPU data
         memory_rows: list[MemoryRow] = []
-        
-        # System RAM (from GPU PDH — this is total system memory for GPU processes)
-        # We don't have true system RAM in PDH, so we'll leave it to be populated
-        # by the app if it has access to psutil
-        
+
+        # CPU Dedicated (system RAM via psutil)
+        try:
+            import psutil
+            vm = psutil.virtual_memory()
+            total_mb = vm.total / (1024 * 1024)
+            used_mb = vm.used / (1024 * 1024)
+            memory_rows.append(MemoryRow(
+                label="CPU Dedicated",
+                used_mb=used_mb,
+                total_mb=total_mb,
+                pct=min(vm.percent, 100.0),
+            ))
+        except Exception:
+            pass
+
         # GPU Dedicated
         if gpu.mem_used_mb is not None and gpu.mem_total_mb is not None:
             used = gpu.mem_used_mb
