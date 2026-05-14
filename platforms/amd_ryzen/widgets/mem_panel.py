@@ -21,8 +21,8 @@ class MemPanel(Widget):
         padding: 0 1;
         height: auto;
     }
-    MemPanel Static {
-        height: 1;
+    MemPanel #mem-rows {
+        height: auto;
     }
     MemPanel #mem-note {
         color: $text-muted;
