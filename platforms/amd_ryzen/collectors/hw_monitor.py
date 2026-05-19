@@ -59,7 +59,9 @@ class HWMonitorCollector:
     def _read_cpu(self) -> CPUStats:
         """Read CPU-specific data from LHM."""
         cores_data: dict[int, CPUCoreData] = {}
-        cpu_temp: Optional[float] = None
+        # Collect candidate temps; pick the best one after the scan finishes.
+        # Ryzen sensor names vary by chip: Tctl, Tdie, Package, CCD #1, Core (Tctl/Tdie), ...
+        temp_candidates: dict[str, float] = {}
         cpu_power: Optional[float] = None
         cpu_total_load: Optional[float] = None
 
@@ -76,8 +78,10 @@ class HWMonitorCollector:
                         continue
                     val = float(str(val))
 
-                    if stype == "Temperature" and "Tctl" in name:
-                        cpu_temp = val
+                    if stype == "Temperature":
+                        # Drop literal 0 — Strix Halo's Tctl reports 0 on this driver.
+                        if val > 0:
+                            temp_candidates[name] = val
                     elif stype == "Power" and name == "Package":
                         cpu_power = val
                     elif stype == "Load":
@@ -106,6 +110,7 @@ class HWMonitorCollector:
                             cores_data[idx].power_w = val
 
         cores = [cores_data[idx] for idx in sorted(cores_data.keys())]
+        cpu_temp = self._pick_cpu_temp(temp_candidates)
         available = cpu_temp is not None or cpu_total_load is not None or len(cores) > 0
 
         return CPUStats(
@@ -115,6 +120,24 @@ class HWMonitorCollector:
             power_w=cpu_power,
             available=available,
         )
+
+    @staticmethod
+    def _pick_cpu_temp(candidates: dict[str, float]) -> Optional[float]:
+        """Pick the most meaningful CPU temp from LHM's available sensors.
+
+        Preference order matches what htop-likes typically display: the
+        package-wide control temperature, then die, then any CCD/core
+        average, then anything left.
+        """
+        if not candidates:
+            return None
+        priority = ("Tctl", "Tdie", "Package", "CCD", "Core")
+        for needle in priority:
+            for name, val in candidates.items():
+                if needle in name:
+                    return val
+        # Fallback: first sensor we found.
+        return next(iter(candidates.values()))
 
     def enrich_gpu(self, gpu: GPUStats) -> GPUStats:
         """Enrich GPUStats with LHM data (temp, clocks, power, memory)."""
@@ -136,7 +159,9 @@ class HWMonitorCollector:
                         val = float(str(val))
 
                         if stype == "Temperature":
-                            gpu.temp_c = val
+                            # Drop zero readings (uninitialised on Strix Halo).
+                            if val > 0:
+                                gpu.temp_c = val
                         elif stype == "Clock":
                             if "Memory" in name:
                                 gpu.memory_clock_mhz = val
