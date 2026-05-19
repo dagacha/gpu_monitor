@@ -79,6 +79,18 @@ pip install -r requirements-linux.txt
 python main.py
 ```
 
+### Launching a specific platform
+
+`main.py` autodetects the OS and picks the right variant. To bypass detection and launch a platform directly (useful for testing or when autodetection picks the wrong one):
+
+```bash
+python -m platforms.amd_ryzen.app       # Windows / AMD Ryzen AI Max
+python -m platforms.apple_silicon.app   # macOS / Apple Silicon
+python -m platforms.nvidia_linux.app    # Linux / NVIDIA
+```
+
+Each variant only runs on its target OS — the AMD module needs `pywin32` + `pythonnet`, Apple Silicon needs `powermetrics`, and NVIDIA needs `nvidia-smi` in `PATH`.
+
 ## Requirements
 
 ### Common
