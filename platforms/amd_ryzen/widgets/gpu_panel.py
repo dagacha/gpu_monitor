@@ -95,18 +95,19 @@ class GPUPanel(Widget):
         if gpu is None:
             return
 
-        parts = []
-        if gpu.temp_c is not None:
-            parts.append(f"Temp: {gpu.temp_c:.0f}°C")
+        # Always render Temp so its absence is visible (rather than the row
+        # quietly disappearing). LHM doesn't expose a temp sensor for Strix
+        # Halo's iGPU; the D3DKMT collector fills it when possible.
+        temp_str = f"{gpu.temp_c:.0f}°C" if gpu.temp_c is not None else "--"
+        parts = [f"Temp: {temp_str}"]
         if gpu.clock_mhz is not None:
             parts.append(f"Core: {gpu.clock_mhz:.0f} MHz")
         if gpu.memory_clock_mhz is not None:
             parts.append(f"Mem: {gpu.memory_clock_mhz:.0f} MHz")
         if gpu.power_w is not None:
             parts.append(f"Power: {fmt_watts(gpu.power_w)}")
-        
-        status = "Sensors: -- (LHM not available)" if not parts else "  |  ".join(parts)
-        self.query_one("#hw-row", Static).update(status)
+
+        self.query_one("#hw-row", Static).update("  |  ".join(parts))
 
     def watch_gpu_stats(self, stats: GPUStats | None) -> None:
         if stats is None:
@@ -121,9 +122,10 @@ class GPUPanel(Widget):
         # Update sparkline
         self._history.append(stats.total_utilization)
         self.query_one("#gpu-sparkline", Sparkline).data = list(self._history)
-        
-        # Update engine bars
+
+        # Update engine bars and hardware sensor row
         self._update_engine_bars()
+        self._update_hw_rows()
 
     def reset_history(self) -> None:
         """Reset sparkline history to zeros."""

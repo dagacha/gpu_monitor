@@ -1,6 +1,8 @@
 """
-Power Panel — shows CPU/GPU power and thermal pressure.
-Uses shared common.types and widgets.util.
+Power Panel — shows CPU/GPU/SoC power on AMD Ryzen.
+
+Thermal pressure is a macOS-only concept and isn't shown here; per-component
+temperatures live in the GPU and CPU panels.
 """
 from __future__ import annotations
 
@@ -24,26 +26,16 @@ class PowerPanel(Widget):
     PowerPanel Static {
         height: 1;
     }
-    PowerPanel .thermal-critical {
-        color: $error;
-    }
-    PowerPanel .thermal-heavy {
-        color: $warning;
-    }
-    PowerPanel .thermal-moderate {
-        color: $text-warning;
-    }
     """
 
     power_stats: reactive[PowerStats | None] = reactive(None)
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.border_title = "Power & Thermal"
+        self.border_title = "Power"
 
     def compose(self) -> ComposeResult:
         yield Static("", id="power-row")
-        yield Static("", id="thermal-row")
 
     def on_mount(self) -> None:
         self._update()
@@ -56,7 +48,6 @@ class PowerPanel(Widget):
         if power is None:
             return
 
-        # Power row
         power_parts = []
         if power.cpu_power_w is not None:
             power_parts.append(f"CPU: {fmt_watts(power.cpu_power_w)}")
@@ -68,17 +59,3 @@ class PowerPanel(Widget):
         self.query_one("#power-row", Static).update(
             "  |  ".join(power_parts) if power_parts else "Power data unavailable"
         )
-
-        # Thermal row
-        thermal = power.thermal_pressure or "Unknown"
-        thermal_text = f"Thermal: {thermal}"
-        
-        thermal_widget = self.query_one("#thermal-row", Static)
-        thermal_widget.set_classes(
-            "thermal-critical" if thermal in ["Critical", "Serious"]
-            else "thermal-heavy" if thermal == "Fair"
-            else "thermal-moderate" if thermal == "Moderate"
-            else ""
-        )
-
-        thermal_widget.update(thermal_text)

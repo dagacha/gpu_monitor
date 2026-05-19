@@ -13,6 +13,7 @@ from common.types import (
     ProcessStats,
     SystemSnapshot,
 )
+from platforms.amd_ryzen.collectors.gpu_d3dkmt import GPUD3DKMTCollector
 from platforms.amd_ryzen.collectors.gpu_pdh import GPUPDHCollector
 from platforms.amd_ryzen.collectors.hw_monitor import HWMonitorCollector
 from platforms.amd_ryzen.collectors.npu import NPUCollector, NPUStats
@@ -33,6 +34,7 @@ class AMDRyzenCollectors:
 
     def __init__(self) -> None:
         self._gpu_pdh = GPUPDHCollector()
+        self._gpu_d3dkmt = GPUD3DKMTCollector()
         self._hw = HWMonitorCollector()
         self._npu = NPUCollector()
         self._processes = ProcessGPUCollector()
@@ -53,6 +55,16 @@ class AMDRyzenCollectors:
 
         # Start with PDH GPU data and enrich with LHM
         gpu = self._hw.enrich_gpu(gpu_pdh)
+
+        # WDDM kernel API: authoritative temp/power for adapters LHM cannot read
+        # (e.g. Strix Halo iGPU). Always preferred for temperature; only fills
+        # other fields when LHM hasn't already provided them.
+        perf = self._gpu_d3dkmt.collect()
+        if perf is not None:
+            if perf.temp_c is not None:
+                gpu.temp_c = perf.temp_c
+            if gpu.memory_clock_mhz is None and perf.memory_clock_mhz:
+                gpu.memory_clock_mhz = perf.memory_clock_mhz
 
         # Build power stats from LHM
         power = self._hw.enrich_power(PowerStats())
@@ -115,6 +127,7 @@ class AMDRyzenCollectors:
     def close(self) -> None:
         """Clean up resources."""
         self._gpu_pdh.close()
+        self._gpu_d3dkmt.close()
         self._processes.close()
 
 
