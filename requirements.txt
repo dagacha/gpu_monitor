@@ -12,3 +12,7 @@ wmi>=1.5.1
 
 # LHM DLL access (used for GPU/CPU temps, clocks, power)
 pythonnet>=3.0.3
+
+# NVIDIA on Windows: NVML bindings (preferred over nvidia-smi when present).
+# Optional — the collector falls back to nvidia-smi subprocess if missing.
+pynvml>=11.5.0

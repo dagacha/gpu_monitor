@@ -6,10 +6,19 @@ import platform
 import sys
 
 
-def _has_nvidia() -> bool:
-    """Check if nvidia-smi is available."""
-    path = os.environ.get("NVSMI_PATH", "/usr/bin/nvidia-smi")
-    return os.path.isfile(path)
+def _has_nvidia(system: str) -> bool:
+    """Check if nvidia-smi is available for the current OS."""
+    override = os.environ.get("NVSMI_PATH")
+    if override:
+        return os.path.isfile(override)
+    if system == "Windows":
+        candidates = [
+            r"C:\Windows\System32\nvidia-smi.exe",
+            r"C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe",
+        ]
+    else:
+        candidates = ["/usr/bin/nvidia-smi", "/usr/local/bin/nvidia-smi"]
+    return any(os.path.isfile(c) for c in candidates)
 
 
 def main() -> None:
@@ -17,6 +26,15 @@ def main() -> None:
     system = platform.system()
 
     if system == "Windows":
+        if _has_nvidia(system):
+            try:
+                from platforms.nvidia_windows import NvidiaWindowsMonitorApp
+                print("Detected: NVIDIA GPU (Windows)")
+                NvidiaWindowsMonitorApp().run()
+                return
+            except ImportError as e:
+                print(f"Error loading NVIDIA Windows platform: {e}")
+                print("Falling back to AMD Ryzen detection...")
         try:
             from platforms.amd_ryzen import AMDRyzenMonitorApp
             print("Detected: AMD Ryzen (Windows)")
@@ -42,7 +60,7 @@ def main() -> None:
             sys.exit(1)
 
     elif system == "Linux":
-        if _has_nvidia():
+        if _has_nvidia(system):
             try:
                 from platforms.nvidia_linux import NvidiaLinuxMonitorApp
                 print("Detected: NVIDIA GPU (Linux)")

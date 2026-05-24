@@ -1,6 +1,6 @@
 # gpu_monitor
 
-An htop-like terminal GPU/CPU/NPU monitor for **AMD Ryzen AI Max** (Windows), **Apple Silicon** (macOS), and **NVIDIA GPUs** (Linux).
+An htop-like terminal GPU/CPU/NPU monitor for **AMD Ryzen AI Max** (Windows), **Apple Silicon** (macOS), and **NVIDIA GPUs** (Windows and Linux).
 
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
@@ -11,6 +11,7 @@ An htop-like terminal GPU/CPU/NPU monitor for **AMD Ryzen AI Max** (Windows), **
 |----------|-----|-----|--------|-----|---------------|
 | **AMD Ryzen AI Max** (Windows 11) | ✅ Radeon 8060S | ✅ Per-core | ✅ UMA | ✅ XDNA | ✅ SoC |
 | **Apple Silicon** (macOS) | ✅ M1/M2/M3/M4 | ✅ Per-core | ✅ Unified | ❌ Not exposed | ✅ Thermal |
+| **NVIDIA GPU** (Windows 11) | ✅ RTX/GTX | ✅ Per-core (+ LHM temp/clock) | ✅ System + VRAM | ❌ Not exposed | ✅ CPU + GPU |
 | **NVIDIA GPU** (Linux) | ✅ RTX/GTX | ✅ Per-core | ✅ System | ❌ Not exposed | ✅ Power |
 
 
@@ -35,6 +36,16 @@ An htop-like terminal GPU/CPU/NPU monitor for **AMD Ryzen AI Max** (Windows), **
 | **Memory** | Unified memory breakdown: wired, active, inactive, free, compressed |
 | **CPU** | Per-core load bars, frequency from powermetrics (with sudo) |
 | **Power** | CPU/GPU power draw, thermal pressure level (Nominal/Fair/Serious/Critical) |
+
+### NVIDIA (Windows)
+
+| Panel | Metrics |
+|-------|---------|
+| **GPU** | Utilization (3D / Memory BW / Encoder / Decoder), VRAM, temp, core/mem clocks, power — via NVML (`pynvml`) with `nvidia-smi` fallback |
+| **Memory** | System RAM + GPU VRAM |
+| **Processes** | Top GPU memory consumers via `nvidia-smi --query-compute-apps` |
+| **CPU** | Per-core load (psutil) + temp / clock / package power (LibreHardwareMonitor) |
+| **Power** | Combined CPU + GPU power draw |
 
 ### NVIDIA (Linux)
 
@@ -70,6 +81,23 @@ python main.py
 sudo python main.py
 ```
 
+### NVIDIA (Windows 11)
+
+```bat
+git clone https://github.com/dagacha/gpu_monitor.git
+cd gpu_monitor
+pip install -r requirements.txt
+python main.py
+```
+
+`main.py` auto-detects NVIDIA on Windows by probing for `nvidia-smi.exe` in
+`C:\Windows\System32\` and `C:\Program Files\NVIDIA Corporation\NVSMI\`. To
+launch it directly:
+
+```bat
+python -m platforms.nvidia_windows.app
+```
+
 ### NVIDIA (Linux)
 
 ```bash
@@ -85,6 +113,7 @@ python main.py
 
 ```bash
 python -m platforms.amd_ryzen.app       # Windows / AMD Ryzen AI Max
+python -m platforms.nvidia_windows.app  # Windows / NVIDIA
 python -m platforms.apple_silicon.app   # macOS / Apple Silicon
 python -m platforms.nvidia_linux.app    # Linux / NVIDIA
 ```
@@ -107,6 +136,13 @@ Each variant only runs on its target OS — the AMD module needs `pywin32` + `py
 - `wmi>=1.5.1`
 - LibreHardwareMonitor v0.9.6+ (for temps/clocks/power)
 
+### NVIDIA (Windows)
+- Windows 11
+- NVIDIA drivers (`nvidia-smi.exe` on PATH or in `C:\Windows\System32\`)
+- `pynvml>=11.5.0` (optional — falls back to `nvidia-smi` subprocess if missing)
+- `pythonnet>=3.0.3` + LibreHardwareMonitor (optional — for CPU temp/clock/power)
+- Override `NVSMI_PATH` env var if `nvidia-smi` is somewhere non-standard
+
 ### Apple Silicon (macOS)
 - macOS 12+ (Monterey or later)
 - `sudo` access (optional, for GPU/power/thermal data)
@@ -122,7 +158,8 @@ All paths are configurable via environment variables:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `GPU_MONITOR_LHM_PATH` | `C:\Users\Office\LibreHardwareMonitor` | LHM directory (Windows) |
-| `GPU_MONITOR_XRT_SMI` | `C:\Windows\System32\AMD\xrt-smi.exe` | xrt-smi path (Windows) |
+| `GPU_MONITOR_XRT_SMI` | `C:\Windows\System32\AMD\xrt-smi.exe` | xrt-smi path (Windows / AMD) |
+| `NVSMI_PATH` | autodetect (Windows) / `/usr/bin/nvidia-smi` (Linux) | nvidia-smi path |
 
 ## Keyboard shortcuts
 
@@ -156,6 +193,11 @@ gpu_monitor/
 │   │   ├── widgets/
 │   │   ├── app.py
 │   │   └── config.py
+│   ├── nvidia_windows/        # NVIDIA (Windows)
+│   │   ├── collectors/        # NVML / nvidia-smi, LHM bridge, psutil
+│   │   ├── widgets/           # (re-exports nvidia_linux widgets)
+│   │   ├── app.py
+│   │   └── config.py
 │   └── nvidia_linux/           # NVIDIA (Linux)
 │       ├── collectors/        # nvidia-smi, psutil
 │       ├── widgets/
@@ -186,6 +228,16 @@ gpu_monitor/
 | GPU active % / freq | `powermetrics --samplers gpu_power` | Yes |
 | Power draw | `powermetrics --samplers cpu_power,gpu_power` | Yes |
 | Thermal pressure | `powermetrics --samplers thermal` / `memory_pressure` | Yes / No |
+
+#### NVIDIA (Windows)
+
+| Metric | Source |
+|--------|--------|
+| GPU util / VRAM / temp / clocks / power | NVML (`pynvml`) — falls back to `nvidia-smi` |
+| Per-process GPU memory | `nvidia-smi --query-compute-apps` |
+| CPU temp / clock / package power | LibreHardwareMonitor DLL (`pythonnet`) |
+| CPU per-core load, total load | `psutil` |
+| System RAM | `psutil` |
 
 #### NVIDIA (Linux)
 
@@ -229,6 +281,27 @@ Check `GPU_MONITOR_LHM_PATH` environment variable points to your LHM folder.
 **NPU shows "xrt-smi not found"**
 Ryzen AI drivers not installed, or `xrt-smi.exe` is missing.
 
+### NVIDIA (Windows)
+
+**Launches AMD app instead of NVIDIA**
+Detection looks for `nvidia-smi.exe` in `C:\Windows\System32\` and
+`C:\Program Files\NVIDIA Corporation\NVSMI\`. If yours is elsewhere, set
+`NVSMI_PATH` to the full path before launching.
+
+**GPU shows no encoder/decoder util**
+NVML returns these only when there's active encode/decode workload. Idle values
+of 0 are expected.
+
+**CPU temp/clock show `--`**
+LibreHardwareMonitor isn't running or wasn't found at `GPU_MONITOR_LHM_PATH`.
+The app tries to start it automatically — if that fails, launch
+`LibreHardwareMonitor.exe` manually first.
+
+**`nvidia-smi` works but pynvml import fails**
+Optional. The collector silently falls back to `nvidia-smi` subprocess calls.
+Install with `pip install pynvml` for faster, richer queries (encoder/decoder
+util, in-process calls).
+
 ### Apple Silicon
 
 **GPU shows "requires sudo powermetrics"**
@@ -261,6 +334,9 @@ psutil>=6.0.0
 pywin32>=307
 wmi>=1.5.1
 pythonnet>=3.0.3
+
+# NVIDIA on Windows (optional — falls back to nvidia-smi subprocess):
+pynvml>=11.5.0
 ```
 
 ## License
