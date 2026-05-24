@@ -28,7 +28,10 @@ class GPUCollector:
         try:
             import warnings
             with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=FutureWarning, module="pynvml")
+                # Deprecated `pynvml` package emits FutureWarning with stacklevel=2,
+                # so a module="pynvml" filter doesn't catch it. Suppress broadly
+                # while we import — scoped to this `with` block only.
+                warnings.simplefilter("ignore", FutureWarning)
                 import pynvml
             pynvml.nvmlInit()
             if pynvml.nvmlDeviceGetCount() == 0:
