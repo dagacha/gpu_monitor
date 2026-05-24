@@ -15,4 +15,5 @@ pythonnet>=3.0.3
 
 # NVIDIA on Windows: NVML bindings (preferred over nvidia-smi when present).
 # Optional — the collector falls back to nvidia-smi subprocess if missing.
-pynvml>=11.5.0
+# (nvidia-ml-py replaces the deprecated pynvml package, same `import pynvml`.)
+nvidia-ml-py>=12.535.0

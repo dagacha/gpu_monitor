@@ -12,6 +12,14 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
 
 from platforms.nvidia_windows.collectors import NvidiaWindowsCollectors
-from platforms.nvidia_windows.app import NvidiaWindowsMonitorApp
 
 __all__ = ["NvidiaWindowsCollectors", "NvidiaWindowsMonitorApp"]
+
+
+def __getattr__(name: str):
+    """Lazy-load the Textual app so `python -m platforms.nvidia_windows.app`
+    doesn't double-import (RuntimeWarning about sys.modules)."""
+    if name == "NvidiaWindowsMonitorApp":
+        from platforms.nvidia_windows.app import NvidiaWindowsMonitorApp
+        return NvidiaWindowsMonitorApp
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

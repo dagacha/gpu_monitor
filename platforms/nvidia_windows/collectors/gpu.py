@@ -26,7 +26,10 @@ class GPUCollector:
 
     def _init_nvml(self) -> None:
         try:
-            import pynvml
+            import warnings
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=FutureWarning, module="pynvml")
+                import pynvml
             pynvml.nvmlInit()
             if pynvml.nvmlDeviceGetCount() == 0:
                 pynvml.nvmlShutdown()
