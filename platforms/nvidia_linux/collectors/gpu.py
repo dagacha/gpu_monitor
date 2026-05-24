@@ -52,11 +52,11 @@ def collect(config: NvidiaConfig | None = None) -> GPUStats:
     )
     output = _run([cfg.NVSMI_PATH, f"--query-gpu={query}", "--format=csv,noheader"])
     if not output:
-        return GPUStats(available=False, error="nvidia-smi returned no output")
+        return GPUStats(total_utilization=0.0, available=False, error="nvidia-smi returned no output")
 
     lines = output.splitlines()
     if not lines:
-        return GPUStats(available=False, error="No GPU detected")
+        return GPUStats(total_utilization=0.0, available=False, error="No GPU detected")
 
     fields = [c.strip() for c in lines[0].split(",")]
 
