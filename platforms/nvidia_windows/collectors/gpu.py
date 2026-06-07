@@ -1,4 +1,4 @@
-"""GPU metrics via nvidia-smi.
+"""GPU metrics via nvidia-smi on Windows.
 
 Queries utilization, memory, temperature, clocks, power, fan, and PCIe link.
 Returns common.types.GPUStats (aggregated across all GPUs; first GPU as primary).
@@ -10,7 +10,7 @@ from typing import Optional
 
 from common.types import GPUStats, GPUEngine
 
-from platforms.nvidia_linux.config import NvidiaConfig
+from platforms.nvidia_windows.config import NvidiaConfig
 
 
 def _run(args: list[str], timeout: int = 5) -> str:

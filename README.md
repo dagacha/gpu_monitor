@@ -1,6 +1,6 @@
 # gpu_monitor
 
-An htop-like terminal GPU/CPU/NPU monitor for **AMD Ryzen AI Max** (Windows), **Apple Silicon** (macOS), and **NVIDIA GPUs** (Linux).
+An htop-like terminal GPU/CPU/NPU monitor for **AMD Ryzen AI Max** (Windows), **NVIDIA GPUs** (Windows & Linux), and **Apple Silicon** (macOS).
 
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
@@ -10,6 +10,7 @@ An htop-like terminal GPU/CPU/NPU monitor for **AMD Ryzen AI Max** (Windows), **
 | Platform | GPU | CPU | Memory | NPU | Power/Thermal |
 |----------|-----|-----|--------|-----|---------------|
 | **AMD Ryzen AI Max** (Windows 11) | ✅ Radeon 8060S | ✅ Per-core | ✅ UMA | ✅ XDNA | ✅ SoC |
+| **NVIDIA GPU** (Windows) | ✅ RTX/GTX | ✅ Per-core | ✅ System | ❌ Not exposed | ✅ Power |
 | **Apple Silicon** (macOS) | ✅ M1/M2/M3/M4 | ✅ Per-core | ✅ Unified | ❌ Not exposed | ✅ Thermal |
 | **NVIDIA GPU** (Linux) | ✅ RTX/GTX | ✅ Per-core | ✅ System | ❌ Not exposed | ✅ Power |
 
@@ -26,6 +27,15 @@ An htop-like terminal GPU/CPU/NPU monitor for **AMD Ryzen AI Max** (Windows), **
 | **Processes** | Top GPU memory consumers (local + shared), refreshed every 5s |
 | **CPU** | Per-core load bars + effective clock (GHz), package temperature and power |
 | **Power** | Combined CPU + GPU power draw |
+
+### NVIDIA (Windows)
+
+| Panel | Metrics |
+|-------|---------|
+| **GPU** | Utilization, memory usage, temperature, power draw, clock speeds, 60s sparkline |
+| **Memory** | System RAM utilization |
+| **CPU** | Per-core load bars |
+| **Processes** | Top GPU memory consumers (requires admin) |
 
 ### Apple Silicon (macOS)
 
@@ -56,6 +66,17 @@ pip install -r requirements.txt
 python main.py
 ```
 
+### NVIDIA (Windows)
+
+```bat
+git clone https://github.com/dagacha/gpu_monitor.git
+cd gpu_monitor
+pip install -r requirements.txt
+python main.py
+```
+
+> **Note:** The process table requires running as Administrator. Without admin, GPU utilization, memory, temperature, and power still work.
+
 ### Apple Silicon (macOS)
 
 ```bash
@@ -85,11 +106,12 @@ python main.py
 
 ```bash
 python -m platforms.amd_ryzen.app       # Windows / AMD Ryzen AI Max
+python -m platforms.nvidia_windows.app  # Windows / NVIDIA
 python -m platforms.apple_silicon.app   # macOS / Apple Silicon
 python -m platforms.nvidia_linux.app    # Linux / NVIDIA
 ```
 
-Each variant only runs on its target OS — the AMD module needs `pywin32` + `pythonnet`, Apple Silicon needs `powermetrics`, and NVIDIA needs `nvidia-smi` in `PATH`.
+Each variant only runs on its target OS — the AMD module needs `pywin32` + `pythonnet`, NVIDIA Windows needs `nvidia-smi`, Apple Silicon needs `powermetrics`, and NVIDIA Linux needs `nvidia-smi` in `PATH`.
 
 ## Requirements
 
@@ -107,6 +129,11 @@ Each variant only runs on its target OS — the AMD module needs `pywin32` + `py
 - `wmi>=1.5.1`
 - LibreHardwareMonitor v0.9.6+ (for temps/clocks/power)
 
+### NVIDIA (Windows)
+- Windows 10/11
+- NVIDIA drivers installed
+- `nvidia-smi` available at `C:\Windows\System32\nvidia-smi.exe`
+
 ### Apple Silicon (macOS)
 - macOS 12+ (Monterey or later)
 - `sudo` access (optional, for GPU/power/thermal data)
@@ -123,6 +150,7 @@ All paths are configurable via environment variables:
 |----------|---------|-------------|
 | `GPU_MONITOR_LHM_PATH` | `C:\Users\Office\LibreHardwareMonitor` | LHM directory (Windows) |
 | `GPU_MONITOR_XRT_SMI` | `C:\Windows\System32\AMD\xrt-smi.exe` | xrt-smi path (Windows) |
+| `NVSMI_PATH` | `/usr/bin/nvidia-smi` (Linux) or `C:\Windows\System32\nvidia-smi.exe` (Windows) | nvidia-smi path |
 
 ## Keyboard shortcuts
 
@@ -151,6 +179,11 @@ gpu_monitor/
 │   │   ├── widgets/           # Platform-specific UI
 │   │   ├── app.py             # Textual application
 │   │   └── config.py          # AMD-specific settings
+│   ├── nvidia_windows/        # NVIDIA (Windows)
+│   │   ├── collectors/        # nvidia-smi, psutil
+│   │   ├── widgets/
+│   │   ├── app.py
+│   │   └── config.py
 │   ├── apple_silicon/         # Apple Silicon (macOS)
 │   │   ├── collectors/        # psutil, vm_stat, powermetrics
 │   │   ├── widgets/
@@ -176,6 +209,16 @@ gpu_monitor/
 | NPU | `xrt-smi examine --report aie-partitions` |
 | CPU | LibreHardwareMonitor DLL |
 | System RAM | `psutil` |
+
+#### NVIDIA (Windows)
+
+| Metric | Source | Admin Required |
+|--------|--------|----------------|
+| GPU utilization/mem | `nvidia-smi` | No |
+| GPU power/temp/clocks | `nvidia-smi` | No |
+| GPU process memory | `nvidia-smi --query-compute-apps` | Yes |
+| CPU load | `psutil.cpu_percent()` | No |
+| System RAM | `psutil.virtual_memory()` | No |
 
 #### Apple Silicon (macOS)
 
@@ -227,7 +270,15 @@ typeperf "\GPU Engine(*)\Utilization Percentage" -sc 1
 Check `GPU_MONITOR_LHM_PATH` environment variable points to your LHM folder.
 
 **NPU shows "xrt-smi not found"**
-Ryzen AI drivers not installed, or `xrt-smi.exe` is missing.
+Ryery AI drivers not installed, or `xrt-smi.exe` is missing.
+
+### NVIDIA (Windows)
+
+**Process table is empty**
+Run as Administrator — nvidia-smi requires elevated privileges to query GPU processes.
+
+**nvidia-smi not found**
+Ensure NVIDIA drivers are installed. nvidia-smi is typically at `C:\Windows\System32\nvidia-smi.exe`.
 
 ### Apple Silicon
 
@@ -244,6 +295,10 @@ Require `sudo` for powermetrics. Without sudo, only load % is available.
 System may not be reporting thermal pressure. Check with `memory_pressure` command.
 
 ## Known Limitations
+
+### Windows (NVIDIA)
+- **GPU process list requires admin** — nvidia-smi needs elevated privileges to query compute applications
+- **No per-engine breakdown** — nvidia-smi only reports total GPU and memory utilization
 
 ### macOS (Apple Silicon)
 - **No per-process GPU tracking** — macOS has no public API equivalent to Windows PDH GPU process counters
