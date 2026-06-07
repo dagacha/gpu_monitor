@@ -117,7 +117,7 @@ class GPUPDHCollector:
 
     def collect(self) -> GPUStats:
         if not _PDH_AVAILABLE:
-            return GPUStats(available=False, error="pywin32 not available")
+            return GPUStats(total_utilization=0.0, available=False, error="pywin32 not available")
 
         # Periodically re-enumerate instances so new GPU processes are counted
         self._ticks_since_rebuild += 1
@@ -126,13 +126,13 @@ class GPUPDHCollector:
             self._rebuild()
 
         if not self._ready:
-            return GPUStats(available=False, error="PDH query not ready")
+            return GPUStats(total_utilization=0.0, available=False, error="PDH query not ready")
 
         try:
             win32pdh.CollectQueryData(self._query)
         except Exception:
             self._rebuild()
-            return GPUStats(available=False, error="PDH collection failed")
+            return GPUStats(total_utilization=0.0, available=False, error="PDH collection failed")
 
         engines: dict[str, float] = {}
         for engtype, handles in self._engine_counters.items():

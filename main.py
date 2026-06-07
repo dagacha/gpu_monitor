@@ -3,13 +3,28 @@ from __future__ import annotations
 
 import os
 import platform
+import shutil
 import sys
 
 
-def _has_nvidia() -> bool:
-    """Check if nvidia-smi is available."""
+def _has_nvidia_linux() -> bool:
+    """Check if nvidia-smi is available on Linux."""
     path = os.environ.get("NVSMI_PATH", "/usr/bin/nvidia-smi")
     return os.path.isfile(path)
+
+
+def _has_nvidia_windows() -> bool:
+    """Check if nvidia-smi is available on Windows."""
+    # Check common locations
+    nvidia_smi_paths = [
+        r"C:\Windows\System32\nvidia-smi.exe",
+        r"C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe",
+    ]
+    for path in nvidia_smi_paths:
+        if os.path.isfile(path):
+            return True
+    # Also check PATH
+    return shutil.which("nvidia-smi") is not None
 
 
 def main() -> None:
@@ -17,14 +32,25 @@ def main() -> None:
     system = platform.system()
 
     if system == "Windows":
-        try:
-            from platforms.amd_ryzen import AMDRyzenMonitorApp
-            print("Detected: AMD Ryzen (Windows)")
-            AMDRyzenMonitorApp().run()
-        except ImportError as e:
-            print(f"Error loading AMD Ryzen platform: {e}")
-            print("Make sure you're on Windows with pywin32 and pythonnet installed.")
-            sys.exit(1)
+        # Check for NVIDIA GPU first
+        if _has_nvidia_windows():
+            try:
+                from platforms.nvidia_windows import NvidiaWindowsMonitorApp
+                print("Detected: NVIDIA GPU (Windows)")
+                NvidiaWindowsMonitorApp().run()
+            except ImportError as e:
+                print(f"Error loading NVIDIA Windows platform: {e}")
+                sys.exit(1)
+        else:
+            # Fall back to AMD Ryzen
+            try:
+                from platforms.amd_ryzen import AMDRyzenMonitorApp
+                print("Detected: AMD Ryzen (Windows)")
+                AMDRyzenMonitorApp().run()
+            except ImportError as e:
+                print(f"Error loading AMD Ryzen platform: {e}")
+                print("Make sure you're on Windows with pywin32 and pythonnet installed.")
+                sys.exit(1)
 
     elif system == "Darwin":
         try:
@@ -42,7 +68,7 @@ def main() -> None:
             sys.exit(1)
 
     elif system == "Linux":
-        if _has_nvidia():
+        if _has_nvidia_linux():
             try:
                 from platforms.nvidia_linux import NvidiaLinuxMonitorApp
                 print("Detected: NVIDIA GPU (Linux)")
@@ -57,7 +83,7 @@ def main() -> None:
 
     else:
         print(f"Unsupported platform: {system}")
-        print("Supported platforms: Windows (AMD Ryzen), macOS (Apple Silicon), Linux (NVIDIA)")
+        print("Supported platforms: Windows (NVIDIA/AMD), macOS (Apple Silicon), Linux (NVIDIA)")
         sys.exit(1)
 
 
