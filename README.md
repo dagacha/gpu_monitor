@@ -96,7 +96,7 @@ sudo python main.py
 ```bash
 git clone https://github.com/dagacha/gpu_monitor.git
 cd gpu_monitor
-pip install -r requirements-linux.txt
+pip install -r requirements.txt
 python main.py
 ```
 

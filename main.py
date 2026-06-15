@@ -7,6 +7,12 @@ import shutil
 import sys
 
 
+def _check_python_version() -> None:
+    if sys.version_info < (3, 10) or sys.version_info >= (3, 16):
+        print(f"Python 3.10–3.15 required (got {sys.version.split()[0]})")
+        sys.exit(1)
+
+
 def _has_nvidia_linux() -> bool:
     """Check if nvidia-smi is available on Linux."""
     path = os.environ.get("NVSMI_PATH", "/usr/bin/nvidia-smi")
@@ -29,6 +35,7 @@ def _has_nvidia_windows() -> bool:
 
 def main() -> None:
     """Detect platform and launch appropriate monitor app."""
+    _check_python_version()
     system = platform.system()
 
     if system == "Windows":
