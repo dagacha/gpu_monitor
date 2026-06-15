@@ -8,10 +8,9 @@ from textual.widgets import Static
 
 from common.types import CPUStats
 from common.widgets.util import bar, fmt_watts
-import config as cfg
 
-_BAR_W = cfg.CPU_BAR_WIDTH if hasattr(cfg, "CPU_BAR_WIDTH") else 18
-_MAX_CORES = cfg.MAX_CORES_DISPLAY if hasattr(cfg, "MAX_CORES_DISPLAY") else 32
+_BAR_W = 18
+_MAX_CORES = 32
 
 
 def _fmt_core(core) -> str:
