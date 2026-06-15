@@ -2,7 +2,7 @@
 
 An htop-like terminal GPU/CPU/NPU monitor for **AMD Ryzen AI Max** (Windows), **NVIDIA GPUs** (Windows & Linux), and **Apple Silicon** (macOS).
 
-![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+![Python](https://img.shields.io/badge/python-3.10%E2%80%933.15-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 
 ## Supported Platforms
@@ -24,7 +24,7 @@ An htop-like terminal GPU/CPU/NPU monitor for **AMD Ryzen AI Max** (Windows), **
 | **GPU** | Per-engine utilization (3D / Compute / Copy / Video), 60s sparkline, temperature, clocks, power |
 | **NPU** | XDNA partitions, HW contexts, GOPS, XRT / firmware versions (via `xrt-smi`) |
 | **Memory** | GPU dedicated, GPU shared, system RAM — all from unified memory pool |
-| **Processes** | Top GPU memory consumers (local + shared), refreshed every 5s |
+| **Processes** | Top GPU memory consumers (local + shared), process list rebuilt every 5 refresh ticks |
 | **CPU** | Per-core load bars + effective clock (GHz), package temperature and power |
 | **Power** | Combined CPU + GPU power draw |
 
@@ -45,6 +45,7 @@ An htop-like terminal GPU/CPU/NPU monitor for **AMD Ryzen AI Max** (Windows), **
 | **Memory** | Unified memory breakdown: wired, active, inactive, free, compressed |
 | **CPU** | Per-core load bars, frequency from powermetrics (with sudo) |
 | **Power** | CPU/GPU power draw, thermal pressure level (Nominal/Fair/Serious/Critical) |
+| **Processes** | Top CPU and RAM consumers |
 
 ### NVIDIA (Linux)
 
@@ -116,7 +117,7 @@ Each variant only runs on its target OS — the AMD module needs `pywin32` + `py
 ## Requirements
 
 ### Common
-- Python 3.11+
+- Python 3.10-3.15
 - `textual>=0.88.0`
 - `psutil>=6.0.0`
 
@@ -124,8 +125,8 @@ Each variant only runs on its target OS — the AMD module needs `pywin32` + `py
 - Windows 11
 - Windows Terminal (for full color and Unicode rendering)
 - AMD Adrenalin drivers
-- `pywin32>=307`
-- `pythonnet>=3.0.3`
+- `pywin32>=308`
+- `pythonnet>=3.0.5`
 - `wmi>=1.5.1`
 - LibreHardwareMonitor v0.9.6+ (for temps/clocks/power)
 
@@ -149,6 +150,7 @@ All paths are configurable via environment variables:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `GPU_MONITOR_LHM_PATH` | `C:\Users\Office\LibreHardwareMonitor` | LHM directory (Windows) |
+| `GPU_MONITOR_LHM_EXE` | `GPU_MONITOR_LHM_PATH\LibreHardwareMonitor.exe` | LHM executable path (Windows) |
 | `GPU_MONITOR_XRT_SMI` | `C:\Windows\System32\AMD\xrt-smi.exe` | xrt-smi path (Windows) |
 | `NVSMI_PATH` | `/usr/bin/nvidia-smi` (Linux) or `C:\Windows\System32\nvidia-smi.exe` (Windows) | nvidia-smi path |
 
@@ -160,6 +162,7 @@ All paths are configurable via environment variables:
 | `p` | Pause / resume refresh |
 | `r` | Reset sparkline history |
 | `v` | Toggle process table |
+| `m` | Toggle RAM process table (Apple Silicon only) |
 | `c` | Toggle CPU panel |
 | `l` | Toggle CSV logging |
 
@@ -175,7 +178,7 @@ gpu_monitor/
 │   └── widgets/util.py        # bar(), fmt_mb(), fmt_watts()
 ├── platforms/
 │   ├── amd_ryzen/             # AMD Ryzen (Windows)
-│   │   ├── collectors/        # GPU PDH, LHM, NPU, process memory
+│   │   ├── collectors/        # GPU PDH, D3DKMT, LHM, NPU, process memory
 │   │   ├── widgets/           # Platform-specific UI
 │   │   ├── app.py             # Textual application
 │   │   └── config.py          # AMD-specific settings
@@ -197,6 +200,10 @@ gpu_monitor/
 └── requirements.txt
 ```
 
+The top-level `app.py`, `collectors/`, `widgets/`, `config.py`, and `logger.py`
+files are a legacy AMD-only implementation. The supported entry point is
+`main.py`, which routes into the `platforms/` packages.
+
 ### Data Sources
 
 #### AMD Ryzen (Windows)
@@ -204,7 +211,7 @@ gpu_monitor/
 | Metric | Source |
 |--------|--------|
 | GPU engine utilization | Windows Performance Counters (`win32pdh`) |
-| GPU temps/clocks/power | LibreHardwareMonitor DLL (`pythonnet`) |
+| GPU temps/clocks/power | LibreHardwareMonitor DLL (`pythonnet`) + WDDM D3DKMT adapter perf data |
 | GPU / process memory | Windows Performance Counters |
 | NPU | `xrt-smi examine --report aie-partitions` |
 | CPU | LibreHardwareMonitor DLL |
@@ -270,7 +277,7 @@ typeperf "\GPU Engine(*)\Utilization Percentage" -sc 1
 Check `GPU_MONITOR_LHM_PATH` environment variable points to your LHM folder.
 
 **NPU shows "xrt-smi not found"**
-Ryery AI drivers not installed, or `xrt-smi.exe` is missing.
+Ryzen AI drivers are not installed, or `xrt-smi.exe` is missing.
 
 ### NVIDIA (Windows)
 
@@ -313,9 +320,9 @@ textual>=0.88.0
 psutil>=6.0.0
 
 # Windows only:
-pywin32>=307
+pywin32>=308
 wmi>=1.5.1
-pythonnet>=3.0.3
+pythonnet>=3.0.5
 ```
 
 ## License
