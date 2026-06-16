@@ -8,9 +8,12 @@ from __future__ import annotations
 import subprocess
 from typing import Optional
 
+from common.debug import get_logger
 from common.types import GPUStats, GPUEngine
 
 from platforms.nvidia_windows.config import NvidiaConfig
+
+_log = get_logger("nvidia_windows.gpu")
 
 
 def _run(args: list[str], timeout: int = 5) -> str:
@@ -18,6 +21,7 @@ def _run(args: list[str], timeout: int = 5) -> str:
         r = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
         return r.stdout.strip()
     except Exception:
+        _log.debug("command failed: %s", args, exc_info=True)
         return ""
 
 

@@ -7,7 +7,11 @@ from __future__ import annotations
 import subprocess
 from typing import Optional
 
+from common.debug import get_logger
 from common.types import CPUCoreData, CPUStats
+from platforms.apple_silicon.collectors.powermetrics import energy_to_watts
+
+_log = get_logger("apple.cpu")
 
 
 def _sysctl_int(key: str) -> int | None:
@@ -22,7 +26,7 @@ def _sysctl_int(key: str) -> int | None:
         if result.returncode == 0:
             return int(result.stdout.strip())
     except Exception:
-        pass
+        _log.debug("sysctl int %s failed", key, exc_info=True)
     return None
 
 
@@ -38,7 +42,7 @@ def _sysctl_str(key: str) -> str | None:
         if result.returncode == 0:
             return result.stdout.strip()
     except Exception:
-        pass
+        _log.debug("sysctl str %s failed", key, exc_info=True)
     return None
 
 
@@ -108,7 +112,9 @@ class CPUCollector:
         except Exception as e:
             return CPUStats(available=False, error=str(e))
 
-    def enrich_from_powermetrics(self, cpu: CPUStats, pm_data: dict) -> CPUStats:
+    def enrich_from_powermetrics(
+        self, cpu: CPUStats, pm_data: dict, interval_ms: int = 1000
+    ) -> CPUStats:
         """Enrich CPU stats with powermetrics data (freq, power, temp if available)."""
         if not pm_data or "processor" not in pm_data:
             return cpu
@@ -116,11 +122,10 @@ class CPUCollector:
         try:
             proc = pm_data["processor"]
             
-            # CPU power
-            if "cpu_energy" in proc:
-                # Energy in mJ over the sample period, convert to W
-                # powermetrics gives energy per sample, we need to calculate power
-                cpu.power_w = proc.get("cpu_energy", 0) / 1000.0
+            # CPU power (mW power field, or mJ energy accumulated over the interval)
+            cpu_power = energy_to_watts(proc, "cpu", interval_ms)
+            if cpu_power is not None:
+                cpu.power_w = cpu_power
             
             # Per-core frequencies from clusters
             if "clusters" in proc:
@@ -144,6 +149,6 @@ class CPUCollector:
             # Would need to parse from thermal data or use other sources
             
         except Exception:
-            pass
+            _log.debug("failed to enrich CPU from powermetrics", exc_info=True)
         
         return cpu

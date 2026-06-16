@@ -5,7 +5,11 @@ Parses powermetrics plist output to get GPU utilization, frequency, and power.
 """
 from __future__ import annotations
 
+from common.debug import get_logger
 from common.types import GPUStats
+from platforms.apple_silicon.collectors.powermetrics import energy_to_watts
+
+_log = get_logger("apple.gpu")
 
 
 class GPUCollector:
@@ -18,11 +22,13 @@ class GPUCollector:
     def __init__(self) -> None:
         pass
 
-    def collect(self, pm_data: dict | None) -> GPUStats:
+    def collect(self, pm_data: dict | None, interval_ms: int = 1000) -> GPUStats:
         """Extract GPU stats from powermetrics data.
         
         Args:
             pm_data: Parsed powermetrics plist data (or None if no sudo)
+            interval_ms: powermetrics sample interval, used to convert
+                accumulated energy (mJ) into average power (W).
         
         Returns:
             GPUStats with available=True if powermetrics has GPU data
@@ -45,9 +51,7 @@ class GPUCollector:
             freq_hz = gpu.get("freq_hz", 0)
             
             # GPU power (from processor section usually)
-            gpu_power = None
-            if "processor" in pm_data and "gpu_energy" in pm_data["processor"]:
-                gpu_power = pm_data["processor"]["gpu_energy"] / 1000.0
+            gpu_power = energy_to_watts(pm_data.get("processor", {}), "gpu", interval_ms)
             
             return GPUStats(
                 total_utilization=active_pct,
@@ -57,6 +61,7 @@ class GPUCollector:
             )
             
         except Exception as e:
+            _log.debug("failed to parse GPU data", exc_info=True)
             return GPUStats(
                 total_utilization=0.0,
                 available=False,

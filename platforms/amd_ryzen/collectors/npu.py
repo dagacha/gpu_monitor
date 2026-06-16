@@ -14,7 +14,10 @@ import re
 import subprocess
 from dataclasses import dataclass, field
 
+from common.debug import get_logger
 from platforms.amd_ryzen.config import AMDConfig
+
+_log = get_logger("amd.npu")
 
 
 @dataclass
@@ -79,6 +82,7 @@ def _run(args: list[str], timeout: int = 5) -> str:
         )
         return r.stdout + r.stderr
     except Exception:
+        _log.debug("xrt-smi command failed: %s", args, exc_info=True)
         return ""
 
 

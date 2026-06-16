@@ -8,7 +8,11 @@ from __future__ import annotations
 import subprocess
 from typing import Optional
 
+from common.debug import get_logger
 from common.types import PowerStats
+from platforms.apple_silicon.collectors.powermetrics import energy_to_watts
+
+_log = get_logger("apple.power")
 
 
 def _memory_pressure() -> str | None:
@@ -33,7 +37,7 @@ def _memory_pressure() -> str | None:
             else:
                 return "Nominal"
     except Exception:
-        pass
+        _log.debug("memory_pressure failed", exc_info=True)
     return None
 
 
@@ -47,11 +51,13 @@ class PowerCollector:
     def __init__(self) -> None:
         pass
 
-    def collect(self, pm_data: dict | None) -> PowerStats:
+    def collect(self, pm_data: dict | None, interval_ms: int = 1000) -> PowerStats:
         """Extract power/thermal from powermetrics data.
         
         Args:
             pm_data: Parsed powermetrics plist data (or None if no sudo)
+            interval_ms: powermetrics sample interval, used to convert
+                accumulated energy (mJ) into average power (W).
         
         Returns:
             PowerStats with available data
@@ -65,21 +71,14 @@ class PowerCollector:
         if pm_data:
             try:
                 # Power data is in processor section
-                if "processor" in pm_data:
-                    proc = pm_data["processor"]
-                    
-                    # CPU power (cpu_energy is in mJ)
-                    if "cpu_energy" in proc:
-                        cpu_power = proc["cpu_energy"] / 1000.0
-                    
-                    # GPU power
-                    if "gpu_energy" in proc:
-                        gpu_power = proc["gpu_energy"] / 1000.0
+                proc = pm_data.get("processor")
+                if isinstance(proc, dict):
+                    cpu_power = energy_to_watts(proc, "cpu", interval_ms)
+                    gpu_power = energy_to_watts(proc, "gpu", interval_ms)
                     
                     # Package power (combined)
-                    if "combined_power" in proc:
-                        package_power = proc["combined_power"] / 1000.0
-                    elif cpu_power or gpu_power:
+                    package_power = energy_to_watts(proc, "combined", interval_ms)
+                    if package_power is None and (cpu_power or gpu_power):
                         package_power = (cpu_power or 0.0) + (gpu_power or 0.0)
                 
                 # Thermal pressure
@@ -87,7 +86,7 @@ class PowerCollector:
                     thermal = pm_data["thermal_pressure"]
                 
             except Exception:
-                pass
+                _log.debug("failed to parse power data", exc_info=True)
         
         # Fallback for thermal without sudo
         if thermal is None:
