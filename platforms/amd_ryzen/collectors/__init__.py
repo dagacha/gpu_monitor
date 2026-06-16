@@ -101,14 +101,17 @@ class AMDRyzenCollectors:
         
         # GPU Shared
         if gpu.mem_shared_mb is not None:
-            used = gpu.mem_shared_mb
-            total = gpu.mem_shared_total_mb or 16384.0  # Default 16GB if unknown
-            pct = (used / total * 100) if total > 0 else 0.0
+            shared_used = gpu.mem_shared_mb
+            shared_total = gpu.mem_shared_total_mb  # often None on UMA
+            if shared_total and shared_total > 0:
+                shared_pct = (shared_used / shared_total) * 100.0
+            else:
+                shared_pct = 0.0
             memory_rows.append(MemoryRow(
                 label="GPU Shared",
-                used_mb=used,
-                total_mb=total,
-                pct=min(pct, 100.0),
+                used_mb=shared_used,
+                total_mb=shared_total,  # None when upstream couldn't report
+                pct=min(shared_pct, 100.0),
             ))
 
         memory = MemoryStats(rows=memory_rows, available=len(memory_rows) > 0)
