@@ -94,12 +94,21 @@ sudo python main.py
 
 ### NVIDIA (Linux)
 
+Modern Debian/Ubuntu (including WSL2 Ubuntu) ship Python as
+"externally managed" (PEP 668), so `pip install` from the system
+prefix no longer works. Create a virtual environment:
+
 ```bash
 git clone https://github.com/dagacha/gpu_monitor.git
 cd gpu_monitor
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 python main.py
 ```
+
+Re-run `source .venv/bin/activate` in any new shell before launching
+`python main.py`. The `.venv/` directory is git-ignored.
 
 ### Launching a specific platform
 
@@ -286,6 +295,33 @@ Run as Administrator — nvidia-smi requires elevated privileges to query GPU pr
 
 **nvidia-smi not found**
 Ensure NVIDIA drivers are installed. nvidia-smi is typically at `C:\Windows\System32\nvidia-smi.exe`.
+
+### NVIDIA (Linux)
+
+**`pip install` fails with "error: externally-managed-environment"**
+This is PEP 668 — modern Debian/Ubuntu (and WSL2 Ubuntu 22.04+) ship
+Python as externally managed. **Do not** pass
+`--break-system-packages`; use a virtual environment instead:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+If you need to install the system Python package that provides
+`python3 -m venv`, run `sudo apt install python3-venv` first.
+
+**`nvidia-smi` not found or wrong path**
+Install your distro's proprietary NVIDIA driver. On Debian/Ubuntu:
+
+```bash
+sudo apt install nvidia-driver-535   # or your distro's recommended series
+```
+
+That should drop `nvidia-smi` at `/usr/bin/nvidia-smi`. If your distro
+places it elsewhere (e.g. a custom prefix), point the monitor at it via
+`NVSMI_PATH`.
 
 ### Apple Silicon
 
