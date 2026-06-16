@@ -1,6 +1,7 @@
 """Common utilities and types for gpu_monitor."""
 from __future__ import annotations
 
+from common.base_app import BaseMonitorApp
 from common.config import MonitorConfig
 from common.logger import CSVLogger
 from common.types import (
@@ -17,6 +18,7 @@ from common.types import (
 )
 
 __all__ = [
+    "BaseMonitorApp",
     "MonitorConfig",
     "CSVLogger",
     "CPUCoreData",
@@ -29,4 +31,4 @@ __all__ = [
     "ProcessInfo",
     "ProcessStats",
     "SystemSnapshot",
-]
+] 

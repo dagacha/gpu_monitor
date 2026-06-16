@@ -12,18 +12,17 @@ Keyboard shortcuts:
 """
 from __future__ import annotations
 
-import asyncio
 import os
 import subprocess
-from typing import ClassVar
+from typing import Any, ClassVar
 
-from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.widgets import Footer, Header, Label, Static
+from textual.widgets import Footer, Header, Static
 
+from common.base_app import BaseMonitorApp
 from common.config import MonitorConfig
-from common.logger import CSVLogger
-from common.types import PowerStats, SystemSnapshot
+from common.types import SystemSnapshot
+
 from platforms.amd_ryzen.collectors import AMDRyzenCollectors
 from platforms.amd_ryzen.collectors.npu import NPUStats
 from platforms.amd_ryzen.config import AMDConfig
@@ -56,7 +55,7 @@ def _ensure_lhm() -> None:
             pass
 
 
-class AMDRyzenMonitorApp(App):
+class AMDRyzenMonitorApp(BaseMonitorApp):
     CSS = """
     Screen {
         layout: vertical;
@@ -80,35 +79,20 @@ class AMDRyzenMonitorApp(App):
     }
     """
 
-    BINDINGS: ClassVar[list[Binding]] = [
-        Binding("q", "quit", "Quit"),
-        Binding("p", "toggle_pause", "Pause"),
-        Binding("r", "reset_history", "Reset"),
-        Binding("v", "toggle_processes", "Processes"),
-        Binding("c", "toggle_cpu", "CPU Panel"),
-        Binding("l", "toggle_logging", "Log CSV"),
-    ]
+    BINDINGS: ClassVar[list[Binding]] = BaseMonitorApp.BASE_BINDINGS
 
     TITLE = "GPU Monitor — AMD Ryzen AI Max"
     SUB_TITLE = "Windows 11  |  UMA Architecture"
 
-    def __init__(self, config: AMDConfig | None = None) -> None:
-        super().__init__()
+    def __init__(self, config: MonitorConfig | None = None) -> None:
         _ensure_lhm()
-        
-        self.config = config or AMDConfig()
+        super().__init__(config or AMDConfig())
         self._collectors = AMDRyzenCollectors()
-        self._csv = CSVLogger(log_dir=self.config.log_dir)
-        
-        self._paused = False
-        self._show_processes = True
-        self._show_cpu = True
-        
-        # Cache for logging
-        self._last_snapshot: SystemSnapshot | None = None
+        # Cache the last NPU sample so widget updates outside _tick can
+        # still inspect it.
         self._last_npu: NPUStats | None = None
 
-    def compose(self) -> ComposeResult:
+    def compose(self):
         yield Header()
 
         with Static(id="top-row"):
@@ -123,77 +107,26 @@ class AMDRyzenMonitorApp(App):
         yield Static("", id="status-bar")
         yield Footer()
 
-    def on_mount(self) -> None:
-        self.set_interval(self.config.refresh_interval, self._tick)
-        self._set_status("Ready — press ? for help")
-
-    async def _tick(self) -> None:
-        if self._paused:
+    def _update_extra_widgets(
+        self, snapshot: SystemSnapshot, extra: Any
+    ) -> None:
+        """AMD-specific: push NPU stats to the NPU panel."""
+        self._last_npu = extra
+        if extra is None:
             return
+        try:
+            self.query_one("#npu-panel").npu_stats = extra
+        except Exception:
+            # Panel not present — should not happen, but be defensive.
+            pass
 
-        loop = asyncio.get_event_loop()
-        snapshot, npu = await loop.run_in_executor(None, self._collectors.collect)
-
-        self._last_snapshot = snapshot
-        self._last_npu = npu
-
-        # Push to widgets
-        self.query_one("#gpu-panel", GPUPanel).gpu_stats = snapshot.gpu
-        self.query_one("#npu-panel", NPUPanel).npu_stats = npu
-        self.query_one("#mem-panel", MemPanel).mem_stats = snapshot.memory
-        self.query_one("#process-table", ProcessTable).process_stats = snapshot.processes
-        self.query_one("#power-panel", PowerPanel).power_stats = snapshot.power
-        self.query_one("#cpu-panel", CPUPanel).cpu_stats = snapshot.cpu
-
-        # CSV logging
-        if self._csv.active:
-            self._csv.log(snapshot)
-
-    def action_toggle_pause(self) -> None:
-        self._paused = not self._paused
-        if self._paused:
-            self.sub_title = "PAUSED — press p to resume"
-            self._set_status("Paused")
-        else:
-            self.sub_title = "Windows 11  |  UMA Architecture"
-            self._set_status("Resumed")
-
-    def action_reset_history(self) -> None:
-        panel = self.query_one("#gpu-panel", GPUPanel)
-        panel.reset_history()
-        self._set_status("Sparkline history reset")
-
-    def action_toggle_processes(self) -> None:
-        self._show_processes = not self._show_processes
-        pt = self.query_one("#process-table", ProcessTable)
-        pt.display = self._show_processes
-        self._set_status(
-            "Process table shown" if self._show_processes else "Process table hidden"
-        )
-
-    def action_toggle_cpu(self) -> None:
-        self._show_cpu = not self._show_cpu
-        cp = self.query_one("#cpu-panel", CPUPanel)
-        cp.display = self._show_cpu
-        self._set_status(
-            "CPU panel shown" if self._show_cpu else "CPU panel hidden"
-        )
-
-    def action_toggle_logging(self) -> None:
-        msg = self._csv.toggle()
-        if self._csv.active:
-            self.sub_title = f"● REC  {os.path.basename(self._csv.path)}"
-        else:
-            self.sub_title = "Windows 11  |  UMA Architecture"
-        self._set_status(msg)
-
-    def _set_status(self, msg: str) -> None:
-        self.query_one("#status-bar", Static).update(msg)
-
-    def on_unmount(self) -> None:
-        self._collectors.close()
-        if self._csv.active:
-            self._csv.stop()
+    def _on_close(self) -> None:
+        """Release platform-specific resources (LHM DLL + collectors)."""
+        if self._collectors is not None:
+            try:
+                self._collectors.close()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":
