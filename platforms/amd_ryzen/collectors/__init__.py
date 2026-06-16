@@ -135,4 +135,5 @@ class AMDRyzenCollectors:
 
 
 # Convenience function for direct import
-collect_all = AMDRyzenCollectors().collect
+def collect_all() -> tuple[SystemSnapshot, NPUStats]:
+    return AMDRyzenCollectors().collect()

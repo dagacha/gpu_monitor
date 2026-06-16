@@ -1,7 +1,7 @@
 """GPU metrics via nvidia-smi.
 
 Queries utilization, memory, temperature, clocks, power, fan, and PCIe link.
-Returns common.types.GPUStats (aggregated across all GPUs; first GPU as primary).
+Returns common.types.GPUStats for the first GPU reported by nvidia-smi.
 """
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ def _parse_int(s: str) -> Optional[int]:
 
 
 def collect(config: NvidiaConfig | None = None) -> GPUStats:
-    """Query nvidia-smi and return GPUStats (primary GPU)."""
+    """Query nvidia-smi and return GPUStats (first GPU reported)."""
     cfg = config or NvidiaConfig()
     query = (
         "name,utilization.gpu,utilization.memory,temperature.gpu,"
@@ -50,6 +50,7 @@ def collect(config: NvidiaConfig | None = None) -> GPUStats:
         "memory.used,memory.total,fan.speed,"
         "pcie.link.gen.current,pcie.link.width.current"
     )
+    expected_fields = len(query.split(","))
     output = _run([cfg.NVSMI_PATH, f"--query-gpu={query}", "--format=csv,noheader"])
     if not output:
         return GPUStats(total_utilization=0.0, available=False, error="nvidia-smi returned no output")
@@ -59,6 +60,12 @@ def collect(config: NvidiaConfig | None = None) -> GPUStats:
         return GPUStats(total_utilization=0.0, available=False, error="No GPU detected")
 
     fields = [c.strip() for c in lines[0].split(",")]
+    if len(fields) < expected_fields:
+        return GPUStats(
+            total_utilization=0.0,
+            available=False,
+            error=f"nvidia-smi returned {len(fields)} fields, expected {expected_fields}",
+        )
 
     # Build per-engine dict from utilization.gpu and utilization.memory
     engines: dict[str, float] = {
