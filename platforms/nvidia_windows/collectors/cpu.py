@@ -4,9 +4,12 @@ Returns common.types.CPUStats and common.types.MemoryStats.
 """
 from __future__ import annotations
 
+from common.debug import get_logger
 from common.types import CPUCoreData, CPUStats, MemoryRow, MemoryStats
 
 from platforms.nvidia_windows.config import NvidiaConfig
+
+_log = get_logger("nvidia_windows.cpu")
 
 
 def collect_cpu(config: NvidiaConfig | None = None) -> CPUStats:
@@ -30,7 +33,7 @@ def collect_cpu(config: NvidiaConfig | None = None) -> CPUStats:
                     temp_c = temps[name][0].current
                     break
     except Exception:
-        pass
+        _log.debug("failed to read cpu temperature", exc_info=True)
 
     return CPUStats(
         total_load_pct=total_load,

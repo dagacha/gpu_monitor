@@ -4,7 +4,10 @@ Shows top CPU-consuming processes (no GPU data available on macOS).
 """
 from __future__ import annotations
 
+from common.debug import get_logger
 from common.types import ProcessInfo, ProcessStats
+
+_log = get_logger("apple.process")
 
 
 class ProcessCollector:
@@ -47,7 +50,8 @@ class ProcessCollector:
                 try:
                     proc = psutil.Process(p['pid'])
                     mem_mb = proc.memory_info().rss / (1024 * 1024)
-                except:
+                except Exception:
+                    _log.debug("memory_info failed for pid %s", p['pid'], exc_info=True)
                     mem_mb = 0.0
                 
                 process_infos.append(ProcessInfo(

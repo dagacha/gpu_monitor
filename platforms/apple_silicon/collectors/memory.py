@@ -8,7 +8,10 @@ import re
 import subprocess
 from typing import Optional
 
+from common.debug import get_logger
 from common.types import MemoryRow, MemoryStats
+
+_log = get_logger("apple.memory")
 
 
 def _vm_stat() -> dict[str, int]:
@@ -29,7 +32,7 @@ def _vm_stat() -> dict[str, int]:
                     key = match.group(1).lower().replace(" ", "_")
                     result[key] = int(match.group(2))
     except Exception:
-        pass
+        _log.debug("vm_stat failed", exc_info=True)
     return result
 
 
@@ -45,7 +48,7 @@ def _get_page_size() -> int:
         if result.returncode == 0:
             return int(result.stdout.strip())
     except Exception:
-        pass
+        _log.debug("sysctl vm.pagesize failed", exc_info=True)
     return 16384  # Default for Apple Silicon
 
 

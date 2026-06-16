@@ -9,8 +9,11 @@ import re
 import sys
 from typing import Optional
 
+from common.debug import get_logger
 from common.types import CPUCoreData, CPUStats, GPUStats, PowerStats
 from platforms.amd_ryzen.config import AMDConfig
+
+_log = get_logger("amd.hw_monitor")
 
 _CLR_READY = False
 _computer = None
@@ -32,6 +35,7 @@ def _init_lhm() -> bool:
         _CLR_READY = True
         return True
     except Exception:
+        _log.debug("LibreHardwareMonitor init failed", exc_info=True)
         return False
 
 
@@ -194,7 +198,7 @@ class HWMonitorCollector:
                         gpu.engines[name] = load
 
         except Exception:
-            pass
+            _log.debug("failed to enrich GPU from LHM", exc_info=True)
 
         return gpu
 
@@ -240,6 +244,6 @@ class HWMonitorCollector:
                 power.package_power_w = power.soc_power_w
 
         except Exception:
-            pass
+            _log.debug("failed to enrich power from LHM", exc_info=True)
 
         return power

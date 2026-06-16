@@ -7,9 +7,12 @@ from __future__ import annotations
 
 import subprocess
 
+from common.debug import get_logger
 from common.types import ProcessInfo, ProcessStats
 
 from platforms.nvidia_windows.config import NvidiaConfig
+
+_log = get_logger("nvidia_windows.process")
 
 
 def collect(config: NvidiaConfig | None = None) -> ProcessStats:
@@ -20,8 +23,9 @@ def collect(config: NvidiaConfig | None = None) -> ProcessStats:
              "--format=csv,noheader"],
             capture_output=True, text=True, timeout=5,
         )
-    except Exception:
-        return ProcessStats(available=False)
+    except Exception as e:
+        _log.debug("nvidia-smi compute-apps query failed", exc_info=True)
+        return ProcessStats(available=False, error=str(e))
 
     if not r.stdout.strip():
         return ProcessStats(available=True, processes=[])

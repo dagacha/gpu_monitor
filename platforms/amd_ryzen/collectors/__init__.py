@@ -4,6 +4,7 @@ from __future__ import annotations
 import time
 from typing import Optional
 
+from common.debug import get_logger
 from common.types import (
     CPUStats,
     GPUStats,
@@ -18,6 +19,8 @@ from platforms.amd_ryzen.collectors.gpu_pdh import GPUPDHCollector
 from platforms.amd_ryzen.collectors.hw_monitor import HWMonitorCollector
 from platforms.amd_ryzen.collectors.npu import NPUCollector, NPUStats
 from platforms.amd_ryzen.collectors.process_gpu import ProcessGPUCollector
+
+_log = get_logger("amd.collectors")
 
 
 class AMDRyzenCollectors:
@@ -85,7 +88,7 @@ class AMDRyzenCollectors:
                 pct=min(vm.percent, 100.0),
             ))
         except Exception:
-            pass
+            _log.debug("failed to read system RAM via psutil", exc_info=True)
 
         # GPU Dedicated
         if gpu.mem_used_mb is not None and gpu.mem_total_mb is not None:

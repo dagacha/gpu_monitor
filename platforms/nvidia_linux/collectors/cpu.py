@@ -6,9 +6,12 @@ from __future__ import annotations
 
 import os
 
+from common.debug import get_logger
 from common.types import CPUCoreData, CPUStats, MemoryRow, MemoryStats
 
 from platforms.nvidia_linux.config import NvidiaConfig
+
+_log = get_logger("nvidia_linux.cpu")
 
 
 def _read_sys(path: str) -> float | None:
@@ -16,6 +19,7 @@ def _read_sys(path: str) -> float | None:
         with open(path) as f:
             return float(f.read().strip()) / 1000.0
     except Exception:
+        _log.debug("failed to read %s", path, exc_info=True)
         return None
 
 
@@ -33,7 +37,7 @@ def _read_cpu_temp() -> float | None:
                     if val is not None:
                         return val
     except Exception:
-        pass
+        _log.debug("failed to read cpu temp from hwmon", exc_info=True)
     return None
 
 
@@ -46,7 +50,7 @@ def _read_cpu_freq() -> float | None:
                     if len(parts) > 1:
                         return float(parts[1].strip())
     except Exception:
-        pass
+        _log.debug("failed to read cpu freq from /proc/cpuinfo", exc_info=True)
     return None
 
 

@@ -43,15 +43,9 @@ class AppleSiliconCollectors:
         self._processes = ProcessCollector()
         self._processes_by_memory = ProcessMemoryCollector()
         
-        # powermetrics runner (for GPU/power/thermal)
+        # powermetrics runner (for GPU/power/thermal). Sudo state lives in
+        # AppleConfig.has_sudo_access (a single cached source of truth).
         self._pm_runner = PowerMetricsRunner(self.config)
-        self._has_sudo: bool | None = None
-
-    def _check_sudo(self) -> bool:
-        """Check if we have sudo access (cached)."""
-        if self._has_sudo is None:
-            self._has_sudo = self._pm_runner.can_run_with_sudo()
-        return self._has_sudo
 
     def collect(self) -> SystemSnapshot:
         """Collect all metrics and return SystemSnapshot.
@@ -70,20 +64,22 @@ class AppleSiliconCollectors:
         
         # Try to get powermetrics data (requires sudo)
         pm_data: dict | None = None
-        if self._check_sudo():
+        if self._pm_runner.can_run_with_sudo():
             pm_data = self._pm_runner.sample()
+        
+        interval_ms = self.config.powermetrics_interval_ms
         
         # GPU requires powermetrics
         if pm_data:
-            gpu = self._gpu.collect(pm_data)
+            gpu = self._gpu.collect(pm_data, interval_ms)
         else:
             gpu = self._gpu.collect_basic()
         
         # Power/thermal (uses powermetrics if available, else fallback)
         if pm_data:
-            power = self._power.collect(pm_data)
+            power = self._power.collect(pm_data, interval_ms)
             # Enrich CPU with powermetrics data
-            cpu = self._cpu.enrich_from_powermetrics(cpu, pm_data)
+            cpu = self._cpu.enrich_from_powermetrics(cpu, pm_data, interval_ms)
         else:
             power = self._power.collect_basic()
         
@@ -103,7 +99,7 @@ class AppleSiliconCollectors:
 
     def get_sudo_hint(self) -> str | None:
         """Return hint message if sudo is not configured."""
-        if not self._check_sudo():
+        if not self._pm_runner.can_run_with_sudo():
             return (
                 "For GPU, power, and thermal data, run: "
                 "sudo powermetrics --samplers cpu_power,gpu_power,thermal "
