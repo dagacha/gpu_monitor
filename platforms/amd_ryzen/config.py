@@ -12,9 +12,12 @@ class AMDConfig(MonitorConfig):
     """Configuration for AMD Ryzen platform."""
 
     # LibreHardwareMonitor path
+    # Default expands ``~`` to the current user's home directory, which is
+    # portable across Windows (``%USERPROFILE%``) and POSIX (``$HOME``).
+    # Set ``GPU_MONITOR_LHM_PATH`` to override.
     LHM_PATH: str = os.environ.get(
         "GPU_MONITOR_LHM_PATH",
-        r"C:\Users\Office\LibreHardwareMonitor",
+        os.path.expanduser("~/LibreHardwareMonitor"),
     )
     LHM_EXE: str = os.environ.get(
         "GPU_MONITOR_LHM_EXE",
