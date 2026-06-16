@@ -148,7 +148,7 @@ All paths are configurable via environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GPU_MONITOR_LHM_PATH` | `C:\Users\Office\LibreHardwareMonitor` | LHM directory (Windows) |
+| `GPU_MONITOR_LHM_PATH` | `~/LibreHardwareMonitor` (expanded from current user's home) | LHM directory (Windows) |
 | `GPU_MONITOR_LHM_EXE` | `GPU_MONITOR_LHM_PATH\LibreHardwareMonitor.exe` | LHM executable path (Windows) |
 | `GPU_MONITOR_XRT_SMI` | `C:\Windows\System32\AMD\xrt-smi.exe` | xrt-smi path (Windows) |
 | `NVSMI_PATH` | `/usr/bin/nvidia-smi` (Linux) or `C:\Windows\System32\nvidia-smi.exe` (Windows) | nvidia-smi path |
