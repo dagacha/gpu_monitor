@@ -14,9 +14,26 @@ def _check_python_version() -> None:
 
 
 def _has_nvidia_linux() -> bool:
-    """Check if nvidia-smi is available on Linux."""
-    path = os.environ.get("NVSMI_PATH", "/usr/bin/nvidia-smi")
-    return os.path.isfile(path)
+    """Check if nvidia-smi is available on Linux.
+
+    Looks for a usable nvidia-smi binary in this order:
+
+    1. ``$NVSMI_PATH``                 — user override (env var)
+    2. ``/usr/bin/nvidia-smi``          — standard distro location
+    3. ``/usr/local/bin/nvidia-smi``    — manual symlink or pip install
+    4. ``/usr/lib/wsl/lib/nvidia-smi``  — WSL2's standard drop location
+       (Microsoft mounts the WSL2 GPU driver's nvidia-smi here)
+
+    The first existing path wins. ``$NVSMI_PATH`` retains the highest
+    priority so users on a custom prefix can still pin the location.
+    """
+    candidates = [
+        os.environ.get("NVSMI_PATH"),
+        "/usr/bin/nvidia-smi",
+        "/usr/local/bin/nvidia-smi",
+        "/usr/lib/wsl/lib/nvidia-smi",
+    ]
+    return any(candidate and os.path.isfile(candidate) for candidate in candidates)
 
 
 def _has_nvidia_windows() -> bool:
