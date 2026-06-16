@@ -127,7 +127,6 @@ Each variant only runs on its target OS — the AMD module needs `pywin32` + `py
 - AMD Adrenalin drivers
 - `pywin32>=308`
 - `pythonnet>=3.0.5`
-- `wmi>=1.5.1`
 - LibreHardwareMonitor v0.9.6+ (for temps/clocks/power)
 
 ### NVIDIA (Windows)
@@ -171,11 +170,13 @@ All paths are configurable via environment variables:
 ```
 gpu_monitor/
 ├── main.py                     # Platform detection + entry point
+├── stress.py                   # GPU stress test (pygame + OpenGL)
+├── pyproject.toml              # Build config & dependencies
 ├── common/                     # Shared types & utilities
 │   ├── types.py               # GPUStats, CPUStats, MemoryStats, etc.
 │   ├── config.py              # Base configuration
 │   ├── logger.py              # CSV logging
-│   └── widgets/util.py        # bar(), fmt_mb(), fmt_watts()
+│   └── widgets/util.py        # bar(), fmt_mb(), fmt_hz(), fmt_watts()
 ├── platforms/
 │   ├── amd_ryzen/             # AMD Ryzen (Windows)
 │   │   ├── collectors/        # GPU PDH, D3DKMT, LHM, NPU, process memory
@@ -192,7 +193,7 @@ gpu_monitor/
 │   │   ├── widgets/
 │   │   ├── app.py
 │   │   └── config.py
-│   └── nvidia_linux/           # NVIDIA (Linux)
+│   └── nvidia_linux/          # NVIDIA (Linux)
 │       ├── collectors/        # nvidia-smi, psutil
 │       ├── widgets/
 │       ├── app.py
@@ -200,9 +201,8 @@ gpu_monitor/
 └── requirements.txt
 ```
 
-The top-level `app.py`, `collectors/`, `widgets/`, `config.py`, and `logger.py`
-files are a legacy AMD-only implementation. The supported entry point is
-`main.py`, which routes into the `platforms/` packages.
+`main.py` is the supported entry point. It detects the OS and launches the
+appropriate `platforms/` package.
 
 ### Data Sources
 
@@ -321,7 +321,6 @@ psutil>=6.0.0
 
 # Windows only:
 pywin32>=308
-wmi>=1.5.1
 pythonnet>=3.0.5
 ```
 

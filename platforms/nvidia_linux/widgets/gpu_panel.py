@@ -10,10 +10,9 @@ from textual.widgets import Label, Sparkline, Static
 
 from common.types import GPUStats
 from common.widgets.util import bar, fmt_mb, fmt_watts
-import config as cfg
 
 _HISTORY_LEN = 60
-_BAR_W = cfg.GPU_BAR_WIDTH if hasattr(cfg, "GPU_BAR_WIDTH") else 28
+_BAR_W = 28
 
 
 class GPUPanel(Widget):
