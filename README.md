@@ -320,8 +320,15 @@ sudo apt install nvidia-driver-535   # or your distro's recommended series
 ```
 
 That should drop `nvidia-smi` at `/usr/bin/nvidia-smi`. If your distro
-places it elsewhere (e.g. a custom prefix), point the monitor at it via
-`NVSMI_PATH`.
+places it elsewhere, the monitor auto-searches a fallback chain of:
+
+1. `$NVSMI_PATH` (env-var override)
+2. `/usr/bin/nvidia-smi` (distro package)
+3. `/usr/local/bin/nvidia-smi` (manual symlink or pip-installed)
+4. `/usr/lib/wsl/lib/nvidia-smi` (WSL2's standard drop location — Microsoft mounts the WSL2 GPU driver's nvidia-smi here automatically)
+
+So on **WSL2 Ubuntu**, no extra setup is required once `nvidia-smi`
+works in `bash`. On other non-standard locations, set `NVSMI_PATH`.
 
 ### Apple Silicon
 
