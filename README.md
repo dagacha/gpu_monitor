@@ -173,6 +173,11 @@ All paths are configurable via environment variables:
 | `m` | Toggle RAM process table (Apple Silicon only) |
 | `c` | Toggle CPU panel |
 | `l` | Toggle CSV logging |
+| `?` | Show key bindings (Textual built-in) |
+
+> **CSV logging:** Pressing `l` writes a timestamped CSV to the current
+> working directory by default. Override the destination with the
+> `log_dir` setting in `MonitorConfig`.
 
 ## Architecture
 
@@ -182,6 +187,7 @@ gpu_monitor/
 ├── stress.py                   # GPU stress test (pygame + OpenGL)
 ├── pyproject.toml              # Build config & dependencies
 ├── common/                     # Shared types & utilities
+│   ├── base_app.py            # BaseMonitorApp — shared Textual app, bindings, tick loop
 │   ├── types.py               # GPUStats, CPUStats, MemoryStats, etc.
 │   ├── config.py              # Base configuration
 │   ├── logger.py              # CSV logging
@@ -266,10 +272,13 @@ python stress.py
 
 ### Apple (macOS)
 
-Use any GPU-intensive app or:
+`stress.py` is OpenGL-based and targeted at the AMD/Windows path. On
+Apple Silicon, drive the GPU with any compute-heavy workload and watch
+the monitor respond, for example:
+
 ```bash
-# Install gfxCardStatus or similar to force discrete GPU
-# Or run a compute benchmark
+# Metal/PyTorch matmul loop, a local LLM via Ollama, or a 3D benchmark
+ollama run llama3   # any model that uses the GPU
 ```
 
 ## Troubleshooting
