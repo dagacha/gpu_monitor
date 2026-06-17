@@ -84,6 +84,7 @@ class PowerMetricsRunner:
         # If a sample is already running, reuse the most recent result
         # rather than queueing another `sudo powermetrics` subprocess.
         if not self._sample_lock.acquire(blocking=False):
+            _log.debug("powermetrics sample in flight; reusing last sample")
             return self._last_sample
 
         try:
@@ -113,9 +114,12 @@ class PowerMetricsRunner:
             )
             
             if result.returncode != 0:
-                # Check if it's a sudo issue
+                # Only treat it as a sudo problem on the specific
+                # non-interactive denial, not any stderr that happens to
+                # mention "sudo"/"password" (which would wrongly disable
+                # powermetrics for an unrelated failure).
                 stderr = result.stderr.decode().lower()
-                if "password" in stderr or "sudo" in stderr:
+                if "a password is required" in stderr or "sudo: a terminal is required" in stderr:
                     self.config.record_sudo_failure()
                 _log.debug("powermetrics exited %s: %s", result.returncode, stderr.strip())
                 return None
