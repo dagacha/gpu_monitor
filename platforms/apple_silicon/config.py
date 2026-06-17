@@ -33,7 +33,7 @@ class AppleConfig(MonitorConfig):
 
     @property
     def has_sudo_access(self) -> bool:
-        """Check if we can run powermetrics with sudo."""
+        """Check if we can run powermetrics with sudo (cached)."""
         if self._has_sudo is None:
             # Try to run powermetrics with -n (non-interactive) flag
             import subprocess
@@ -47,3 +47,9 @@ class AppleConfig(MonitorConfig):
             except Exception:
                 self._has_sudo = False
         return self._has_sudo
+
+    def record_sudo_failure(self) -> None:
+        """Mark sudo as unavailable after a non-interactive sudo attempt
+        failed (e.g. powermetrics asked for a password). Keeps this config
+        the single source of truth for sudo state."""
+        self._has_sudo = False
