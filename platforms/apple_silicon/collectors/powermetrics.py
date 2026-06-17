@@ -116,7 +116,7 @@ class PowerMetricsRunner:
                 # Check if it's a sudo issue
                 stderr = result.stderr.decode().lower()
                 if "password" in stderr or "sudo" in stderr:
-                    self.config._has_sudo = False
+                    self.config.record_sudo_failure()
                 _log.debug("powermetrics exited %s: %s", result.returncode, stderr.strip())
                 return None
             

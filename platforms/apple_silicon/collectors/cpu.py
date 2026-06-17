@@ -127,23 +127,13 @@ class CPUCollector:
             if cpu_power is not None:
                 cpu.power_w = cpu_power
             
-            # Per-core frequencies from clusters
-            if "clusters" in proc:
-                for cluster in proc["clusters"]:
-                    cluster_name = cluster.get("name", "")
-                    freq_hz = cluster.get("freq_hz", 0)
-                    
-                    # Determine which cores belong to this cluster
-                    # E-cores: indices 0-3 typically
-                    # P-cores: indices 4+ typically
-                    if cluster_name.startswith("E"):
-                        # E-cluster (efficiency cores)
-                        for core in cpu.cores[:4]:
-                            core.eff_clock_mhz = freq_hz / 1e6
-                    elif cluster_name.startswith("P"):
-                        # P-cluster (performance cores)
-                        for core in cpu.cores[4:]:
-                            core.eff_clock_mhz = freq_hz / 1e6
+            # Per-core frequency is intentionally left unset. powermetrics
+            # reports freq per *cluster* (E/P), and the mapping from a cluster
+            # to psutil's logical-core ordering is not fixed across M-series
+            # chips (e.g. M1 Pro is 6P+2E, not 4+4) and is not guaranteed by
+            # Apple. Cross-referencing cluster names against a sysctl-derived
+            # core layout is left as a follow-up; until then we avoid showing
+            # frequencies attributed to the wrong cores.
             
             # CPU temperature not directly available in powermetrics
             # Would need to parse from thermal data or use other sources
