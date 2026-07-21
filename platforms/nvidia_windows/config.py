@@ -24,5 +24,12 @@ class NvidiaConfig(MonitorConfig):
         os.path.expandvars(r"%USERPROFILE%\LibreHardwareMonitor"),
     )
 
+    # Remote Web Server of a running LHM app (fallback CPU sensor source
+    # when this process is not elevated, e.g. over SSH).
+    LHM_URL: str = os.environ.get(
+        "GPU_MONITOR_LHM_URL",
+        "http://localhost:8085/data.json",
+    )
+
     # Platform identifier
     platform_name: str = "nvidia_windows"
