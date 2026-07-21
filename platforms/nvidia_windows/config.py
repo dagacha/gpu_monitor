@@ -17,5 +17,12 @@ class NvidiaConfig(MonitorConfig):
         r"C:\Windows\System32\nvidia-smi.exe",
     )
 
+    # LibreHardwareMonitor directory (for CPU temp/power sensors).
+    # Same env override as the AMD platform.
+    LHM_PATH: str = os.environ.get(
+        "GPU_MONITOR_LHM_PATH",
+        os.path.expandvars(r"%USERPROFILE%\LibreHardwareMonitor"),
+    )
+
     # Platform identifier
     platform_name: str = "nvidia_windows"
