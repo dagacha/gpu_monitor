@@ -41,7 +41,10 @@ class GPUPanel(Widget):
         yield Sparkline(data=list(self._history), summary_function=max, id="gpu-sparkline")
         yield Static("", id="gpu-util-bar", classes="engine-row")
         yield Static("", id="mem-util-bar", classes="engine-row")
+        yield Static("", id="enc-util-bar", classes="engine-row")
+        yield Static("", id="dec-util-bar", classes="engine-row")
         yield Static("", id="hw-row", classes="hw-row")
+        yield Static("", id="hw-row2", classes="engine-row")
 
     def watch_gpu_stats(self, stats: GPUStats | None) -> None:
         if stats is None:
@@ -63,6 +66,14 @@ class GPUPanel(Widget):
         self.query_one("#mem-util-bar", Static).update(
             f"[dim]Mem BW  [/] {bar(eng.get('Memory BW', 0.0), width=_BAR_W)}"
         )
+        self.query_one("#enc-util-bar", Static).update(
+            f"[dim]Encode  [/] {bar(eng.get('Encode', 0.0), width=_BAR_W)}"
+            if "Encode" in eng else ""
+        )
+        self.query_one("#dec-util-bar", Static).update(
+            f"[dim]Decode  [/] {bar(eng.get('Decode', 0.0), width=_BAR_W)}"
+            if "Decode" in eng else ""
+        )
 
         # Hardware row
         parts: list[str] = []
@@ -73,10 +84,27 @@ class GPUPanel(Widget):
         if stats.memory_clock_mhz is not None:
             parts.append(f"Mem: {stats.memory_clock_mhz:.0f} MHz")
         if stats.power_w is not None:
-            parts.append(f"Pwr: {fmt_watts(stats.power_w)}")
+            pwr = fmt_watts(stats.power_w)
+            if stats.power_limit_w is not None:
+                pwr += f"/{stats.power_limit_w:.0f} W"
+            parts.append(f"Pwr: {pwr}")
         if stats.mem_used_mb is not None and stats.mem_total_mb is not None:
             parts.append(f"VRAM: {fmt_mb(stats.mem_used_mb)}/{fmt_mb(stats.mem_total_mb)}")
         self.query_one("#hw-row", Static).update("  |  ".join(parts))
+
+        # Second hardware row: fan, PCIe link + traffic, throttle reasons
+        parts2: list[str] = []
+        if stats.fan_pct is not None:
+            parts2.append(f"Fan: {stats.fan_pct:.0f}%")
+        if stats.pcie_gen is not None and stats.pcie_width is not None:
+            parts2.append(f"PCIe: Gen{stats.pcie_gen} x{stats.pcie_width}")
+        if stats.pcie_tx_mb_s is not None and stats.pcie_rx_mb_s is not None:
+            parts2.append(
+                f"TX/RX: {stats.pcie_tx_mb_s:.0f}/{stats.pcie_rx_mb_s:.0f} MB/s"
+            )
+        if stats.throttle_reasons:
+            parts2.append(f"[yellow]Throttle: {', '.join(stats.throttle_reasons)}[/]")
+        self.query_one("#hw-row2", Static).update("  |  ".join(parts2))
 
     def reset_history(self) -> None:
         self._history = deque([0.0] * _HISTORY_LEN, maxlen=_HISTORY_LEN)

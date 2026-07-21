@@ -4,6 +4,9 @@ textual>=0.88.0
 # Windows GPU counter access
 pywin32>=308; sys_platform == "win32"
 
+# NVIDIA NVML bindings (GPU metrics without spawning nvidia-smi)
+nvidia-ml-py>=12.560.30
+
 # System metrics (CPU, RAM)
 psutil>=6.0.0
 
