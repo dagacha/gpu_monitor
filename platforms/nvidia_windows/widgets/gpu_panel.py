@@ -44,7 +44,7 @@ class GPUPanel(Widget):
         yield Static("", id="enc-util-bar", classes="engine-row")
         yield Static("", id="dec-util-bar", classes="engine-row")
         yield Static("", id="hw-row", classes="hw-row")
-        yield Static("", id="hw-row2", classes="engine-row")
+        yield Static("", id="hw-row2", classes="hw-row")
 
     def watch_gpu_stats(self, stats: GPUStats | None) -> None:
         if stats is None:

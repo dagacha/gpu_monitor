@@ -41,7 +41,14 @@ class CPULHMCollector:
         try:
             import clr
             sys.path.insert(0, self.config.LHM_PATH)
-            clr.AddReference("LibreHardwareMonitorLib")
+            try:
+                clr.AddReference("LibreHardwareMonitorLib")
+            finally:
+                # Remove the LHM path so it doesn't shadow other modules
+                try:
+                    sys.path.remove(self.config.LHM_PATH)
+                except ValueError:
+                    pass
             from LibreHardwareMonitor.Hardware import Computer
             c = Computer()
             c.IsCpuEnabled = True
@@ -115,8 +122,22 @@ class CPULHMCollector:
             self._http_cooldown = 30
         return temps, power
 
-    _CELSIUS_RE = re.compile(r"^([\d.,]+)\s*°C$")
-    _WATT_RE = re.compile(r"^([\d.,]+)\s*W$")
+    # Match numbers with at most one decimal separator (dot or comma).
+    # This avoids misparsing locale-formatted numbers like "1.234,5".
+    _CELSIUS_RE = re.compile(r"^(\d+(?:[.,]\d+)?)\s*°C$")
+    _WATT_RE = re.compile(r"^(\d+(?:[.,]\d+)?)\s*W$")
+
+    @staticmethod
+    def _parse_locale_num(s: str) -> float:
+        """Parse a locale-formatted number, normalising the decimal separator."""
+        # If both separators appear, the last one is the decimal separator
+        # (common European convention: 1.234,5 = 1234.5).
+        if "." in s and "," in s:
+            if s.rfind(".") > s.rfind(","):
+                s = s.replace(",", "")  # US: 1,234.5 -> 1234.5
+            else:
+                s = s.replace(".", "")  # EU: 1.234,5 -> 1234,5
+        return float(s.replace(",", "."))
 
     def _walk_lhm_tree(
         self, node: dict, in_cpu: bool, temps: dict, powers: list
@@ -130,13 +151,13 @@ class CPULHMCollector:
             value = str(node.get("Value", ""))
             m = self._CELSIUS_RE.match(value)
             if m and "TjMax" not in name:
-                v = float(m.group(1).replace(",", "."))
+                v = self._parse_locale_num(m.group(1))
                 if v > 0:
                     temps[name] = v
             elif name == "CPU Package":
                 m = self._WATT_RE.match(value)
                 if m:
-                    powers.append(float(m.group(1).replace(",", ".")))
+                    powers.append(self._parse_locale_num(m.group(1)))
         for child in node.get("Children", []):
             self._walk_lhm_tree(child, in_cpu, temps, powers)
 

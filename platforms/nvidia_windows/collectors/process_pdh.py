@@ -128,10 +128,12 @@ class ProcessPDHCollector:
         if self._ticks >= REFRESH_TICKS:
             self._ticks = 0
             self._rebuild()
-            # Engine counters are rates: the rebuild's baseline sample alone
-            # can't produce a value, so serve the previous snapshot this tick.
-            return self._last
-        elif self._query is not None:
+            # Engine counters need two samples. The rebuild's baseline
+            # CollectQueryData is the first; fall through to collect a
+            # second sample below so the first tick returns real data
+            # instead of available=False.
+
+        if self._query is not None:
             try:
                 win32pdh.CollectQueryData(self._query)
             except Exception:

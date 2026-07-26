@@ -61,4 +61,8 @@ class NvidiaWindowsCollectors:
 
 
 def collect_all(config: NvidiaConfig | None = None) -> SystemSnapshot:
-    return NvidiaWindowsCollectors(config).collect()
+    collectors = NvidiaWindowsCollectors(config)
+    try:
+        return collectors.collect()
+    finally:
+        collectors.close()

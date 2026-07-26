@@ -45,6 +45,7 @@ class GPUNVMLCollector:
         self.config = config or NvidiaConfig()
         self._handle = None
         self._name = "NVIDIA"
+        self._nvml_inited = False  # tracks whether nvmlInit() succeeded
         self._init_failed = False
         if _NVML_AVAILABLE:
             self._init_nvml()
@@ -52,6 +53,7 @@ class GPUNVMLCollector:
     def _init_nvml(self) -> None:
         try:
             pynvml.nvmlInit()
+            self._nvml_inited = True
             self._handle = pynvml.nvmlDeviceGetHandleByIndex(0)
             name = pynvml.nvmlDeviceGetName(self._handle)
             self._name = name.decode() if isinstance(name, bytes) else name
@@ -112,7 +114,7 @@ class GPUNVMLCollector:
         fan = self._try(pynvml.nvmlDeviceGetFanSpeed, h)
         pcie_gen = self._try(pynvml.nvmlDeviceGetCurrPcieLinkGeneration, h)
         pcie_width = self._try(pynvml.nvmlDeviceGetCurrPcieLinkWidth, h)
-        # KB/s over a ~20ms sampling window
+        # KB/s — driver-maintained moving average, not a point sample
         tx_kb = self._try(
             pynvml.nvmlDeviceGetPcieThroughput, h, pynvml.NVML_PCIE_UTIL_TX_BYTES
         )
@@ -147,9 +149,10 @@ class GPUNVMLCollector:
         )
 
     def close(self) -> None:
-        if self._handle is not None:
+        if self._nvml_inited:
             try:
                 pynvml.nvmlShutdown()
             except Exception:
                 pass
-            self._handle = None
+            self._nvml_inited = False
+        self._handle = None
