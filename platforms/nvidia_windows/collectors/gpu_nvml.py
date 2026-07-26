@@ -26,16 +26,18 @@ _log = get_logger("nvidia_windows.gpu_nvml")
 
 # Throttle-reason bitmask -> human label. Idle/applications-clocks are normal
 # operating states, not throttling, so they are intentionally omitted.
-def _throttle_labels() -> list[tuple[int, str]]:
-    p = pynvml
-    return [
-        (p.nvmlClocksThrottleReasonSwPowerCap, "Power cap"),
-        (p.nvmlClocksThrottleReasonSwThermalSlowdown, "Thermal (sw)"),
-        (p.nvmlClocksThrottleReasonHwThermalSlowdown, "Thermal (hw)"),
-        (p.nvmlClocksThrottleReasonHwPowerBrakeSlowdown, "Power brake"),
-        (p.nvmlClocksThrottleReasonHwSlowdown, "HW slowdown"),
-        (p.nvmlClocksThrottleReasonSyncBoost, "Sync boost"),
+# Built once at module level so it is not re-allocated every tick.
+if _NVML_AVAILABLE:
+    _THROTTLE_LABELS: list[tuple[int, str]] = [
+        (pynvml.nvmlClocksThrottleReasonSwPowerCap, "Power cap"),
+        (pynvml.nvmlClocksThrottleReasonSwThermalSlowdown, "Thermal (sw)"),
+        (pynvml.nvmlClocksThrottleReasonHwThermalSlowdown, "Thermal (hw)"),
+        (pynvml.nvmlClocksThrottleReasonHwPowerBrakeSlowdown, "Power brake"),
+        (pynvml.nvmlClocksThrottleReasonHwSlowdown, "HW slowdown"),
+        (pynvml.nvmlClocksThrottleReasonSyncBoost, "Sync boost"),
     ]
+else:
+    _THROTTLE_LABELS = []
 
 
 class GPUNVMLCollector:
@@ -114,7 +116,8 @@ class GPUNVMLCollector:
         fan = self._try(pynvml.nvmlDeviceGetFanSpeed, h)
         pcie_gen = self._try(pynvml.nvmlDeviceGetCurrPcieLinkGeneration, h)
         pcie_width = self._try(pynvml.nvmlDeviceGetCurrPcieLinkWidth, h)
-        # KB/s — driver-maintained moving average, not a point sample
+        # KB/s — NVML returns a driver-maintained moving average (KB/s),
+        # not a cumulative counter.  See nvmlDeviceGetPcieThroughput docs.
         tx_kb = self._try(
             pynvml.nvmlDeviceGetPcieThroughput, h, pynvml.NVML_PCIE_UTIL_TX_BYTES
         )
@@ -125,7 +128,7 @@ class GPUNVMLCollector:
         throttle: list[str] = []
         mask = self._try(pynvml.nvmlDeviceGetCurrentClocksThrottleReasons, h)
         if mask:
-            for bit, label in _throttle_labels():
+            for bit, label in _THROTTLE_LABELS:
                 if mask & bit:
                     throttle.append(label)
 
