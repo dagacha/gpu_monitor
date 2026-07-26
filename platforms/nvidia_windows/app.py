@@ -1,7 +1,9 @@
 """
 gpu_monitor — htop-like GPU/CPU monitor for NVIDIA GPUs on Windows.
 
-Uses nvidia-smi for GPU metrics and psutil for CPU/memory/processes.
+Uses NVML (pynvml) for GPU metrics, Windows PDH for per-process GPU
+memory/utilization, and psutil for CPU/memory. Falls back to nvidia-smi
+when NVML or PDH is unavailable.
 
 Keyboard shortcuts:
     q / Ctrl+C   Quit
@@ -54,17 +56,20 @@ class NvidiaWindowsMonitorApp(BaseMonitorApp):
     BINDINGS: ClassVar[list[Binding]] = BaseMonitorApp.BASE_BINDINGS
 
     TITLE = "GPU Monitor — NVIDIA Windows"
-    SUB_TITLE = "Windows  |  nvidia-smi"
+    SUB_TITLE = "Windows  |  NVML + PDH"
 
     def __init__(self, config: MonitorConfig | None = None) -> None:
         super().__init__(config or NvidiaConfig())
         self._collectors = NvidiaWindowsCollectors(self.config)
 
+    def _on_close(self) -> None:
+        self._collectors.close()
+
     def compose(self):
         yield Header()
 
         with Static(id="top-row"):
-            yield GPUPanel(id="gpu-panel")
+            yield GPUPanel(gpu_name=self._collectors.gpu_name, id="gpu-panel")
             with Static(id="right-col"):
                 yield MemPanel(id="mem-panel")
 

@@ -17,5 +17,19 @@ class NvidiaConfig(MonitorConfig):
         r"C:\Windows\System32\nvidia-smi.exe",
     )
 
+    # LibreHardwareMonitor directory (for CPU temp/power sensors).
+    # Same env override as the AMD platform.
+    LHM_PATH: str = os.environ.get(
+        "GPU_MONITOR_LHM_PATH",
+        os.path.expandvars(r"%USERPROFILE%\LibreHardwareMonitor"),
+    )
+
+    # Remote Web Server of a running LHM app (fallback CPU sensor source
+    # when this process is not elevated, e.g. over SSH).
+    LHM_URL: str = os.environ.get(
+        "GPU_MONITOR_LHM_URL",
+        "http://localhost:8085/data.json",
+    )
+
     # Platform identifier
     platform_name: str = "nvidia_windows"

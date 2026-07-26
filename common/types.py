@@ -25,6 +25,13 @@ class GPUStats:
     mem_total_mb: Optional[float] = None
     mem_shared_mb: Optional[float] = None
     mem_shared_total_mb: Optional[float] = None
+    fan_pct: Optional[float] = None
+    power_limit_w: Optional[float] = None
+    pcie_gen: Optional[int] = None
+    pcie_width: Optional[int] = None
+    pcie_tx_mb_s: Optional[float] = None
+    pcie_rx_mb_s: Optional[float] = None
+    throttle_reasons: list[str] = field(default_factory=list)
     available: bool = False
     error: str = ""
 
@@ -87,6 +94,7 @@ class ProcessInfo:
     local_mb: float
     shared_mb: float
     total_mb: float
+    gpu_util_pct: Optional[float] = None
 
 
 @dataclass

@@ -18,3 +18,25 @@ diag.py
 
 # LHM binaries (user installs separately)
 lib/
+
+# Node.js (game projects, tooling)
+node_modules/
+package.json
+package-lock.json
+
+# Scratch / generated files (not part of the monitor)
+benchmark.py
+extract_game.py
+generate_single.py
+get_background.py
+get_game_js.py
+incremental_generate.py
+save_raw_output.py
+parse_output.py
+model_output.txt
+
+# Game prototypes
+octopus-invaders-*/
+
+# Corrupt filename artifact
+get_background.py}*

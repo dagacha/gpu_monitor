@@ -32,7 +32,7 @@ class ProcessTable(Widget):
 
     def compose(self) -> ComposeResult:
         yield Static(
-            f"{'PID':>7}  {'Process':<30}  {'VRAM':>10}",
+            f"{'PID':>7}  {'Process':<30}  {'VRAM':>10}  {'GPU%':>6}",
             id="pt-header",
         )
         for i in range(_MAX_ROWS):
@@ -49,9 +49,12 @@ class ProcessTable(Widget):
             row = self.query_one(f"#pt-row-{i}", Static)
             if i < len(procs):
                 p = procs[i]
+                util = (
+                    f"{p.gpu_util_pct:5.1f}%" if p.gpu_util_pct is not None else "    --"
+                )
                 row.update(
                     f"{p.pid:>7}  {p.name[:30]:<30}  "
-                    f"{self._fmt_mem(p.total_mb):>10}"
+                    f"{self._fmt_mem(p.total_mb):>10}  {util:>6}"
                 )
             else:
                 row.update("")
